@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pavan Mangali: Silence Yashas</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@400;700;900&display=swap');
+
+:root {
+  --hero:    #3ecfff;
+  --villain: #ff4e6a;
+  --gold:    #ffe44d;
+  --mute:    #a78bfa;
+  --dark:    #07000f;
+  --ground:  #12124a;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--dark);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  min-height: 100vh;
+  font-family: 'Nunito', sans-serif;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ── Scrolling grid bg ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(62,207,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(62,207,255,0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: gridMove 20s linear infinite;
+  pointer-events: none; z-index: 0;
+}
+@keyframes gridMove { from{background-position:0 0} to{background-position:0 50px} }
+
+/* ══════════ SCREEN SYSTEM ══════════ */
+.screen { display:none; width:100%; flex-direction:column; align-items:center; justify-content:center; }
+.screen.active { display:flex; }
+
+/* ══════════ MENU ══════════ */
+#menuScreen {
+  min-height:100vh; gap:0; position:relative; z-index:1;
+  background:radial-gradient(ellipse at 50% 25%, #200040 0%, var(--dark) 65%);
+}
+
+.m-logo {
+  font-family:'Bangers',cursive; font-size:clamp(26px,5.5vw,50px);
+  color:var(--hero); letter-spacing:3px; text-align:center;
+  text-shadow:0 0 20px rgba(62,207,255,0.9), 4px 4px 0 #002233;
+  animation:logoBounce 2s ease-in-out infinite; margin-top:24px;
+}
+.m-logo em { font-style:normal; color:var(--villain); text-shadow:0 0 20px rgba(255,78,106,0.9), 4px 4px 0 #330011; }
+@keyframes logoBounce { 0%,100%{transform:scale(1)} 50%{transform:scale(1.025)} }
+
+.m-tag {
+  font-family:'Bangers',cursive; font-size:clamp(10px,2vw,15px);
+  color:var(--gold); letter-spacing:6px; text-shadow:0 0 8px var(--gold); margin-top:4px;
+}
+
+.m-chars {
+  display:flex; align-items:flex-end; justify-content:center;
+  gap:clamp(30px,6vw,80px); margin:18px 0 10px; z-index:1;
+}
+.m-char { display:flex; flex-direction:column; align-items:center; gap:6px; }
+.m-char-name {
+  font-family:'Bangers',cursive; font-size:15px; letter-spacing:2px;
+}
+.m-char-name.h { color:var(--hero); text-shadow:0 0 8px var(--hero); }
+.m-char-name.v { color:var(--villain); text-shadow:0 0 8px var(--villain); }
+.m-vs {
+  font-family:'Bangers',cursive; font-size:32px; color:var(--gold);
+  text-shadow:0 0 14px var(--gold); padding-bottom:24px; align-self:center;
+}
+
+.m-diff { z-index:1; display:flex; flex-direction:column; align-items:center; gap:8px; }
+.m-diff-title { font-size:10px; letter-spacing:4px; color:rgba(255,255,255,0.4); text-transform:uppercase; }
+.m-diff-row { display:flex; gap:10px; }
+.d-btn {
+  font-family:'Bangers',cursive; font-size:14px; letter-spacing:2px;
+  padding:7px 18px; border:2px solid rgba(255,255,255,0.15);
+  background:rgba(255,255,255,0.04); color:rgba(255,255,255,0.45);
+  cursor:pointer; border-radius:6px; transition:all 0.18s;
+}
+.d-btn:hover { background:rgba(255,255,255,0.1); color:#fff; }
+.d-btn.sel { border-color:var(--gold); color:var(--gold); background:rgba(255,228,77,0.1); box-shadow:0 0 10px rgba(255,228,77,0.25); }
+
+.m-start {
+  font-family:'Bangers',cursive; font-size:clamp(16px,3.5vw,26px); letter-spacing:4px;
+  padding:13px 44px; background:linear-gradient(135deg,var(--hero),#0070ee);
+  border:none; color:#001122; cursor:pointer; border-radius:8px; z-index:1; margin:10px 0 6px;
+  box-shadow:0 5px 0 #004488, 0 0 24px rgba(62,207,255,0.45);
+  transition:all 0.15s; animation:startPulse 1.8s ease-in-out infinite;
+}
+.m-start:hover { box-shadow:0 8px 0 #004488, 0 0 36px rgba(62,207,255,0.7); }
+.m-start:active { transform:translateY(4px); box-shadow:0 1px 0 #004488; }
+@keyframes startPulse { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+
+.m-ctrls { z-index:1; display:flex; gap:10px; flex-wrap:wrap; justify-content:center; padding:0 12px; }
+.m-ctrl {
+  font-size:9px; letter-spacing:1px; color:rgba(255,255,255,0.4);
+  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+  padding:5px 11px; border-radius:20px;
+}
+.m-ctrl b { color:var(--hero); }
+
+/* ══════════ GAME SCREEN ══════════ */
+#gameScreen {
+  position:relative; overflow:hidden;
+  width:100vw; max-width:920px;
+  height:100vh; max-height:570px;
+}
+
+#gameCanvas { position:absolute; top:0; left:0; width:100%; height:100%; }
+
+/* ── HUD ── */
+#hud {
+  position:absolute; top:0; left:0; right:0;
+  padding:10px 14px; display:flex; justify-content:space-between;
+  pointer-events:none; z-index:10;
+}
+.hud-side { display:flex; flex-direction:column; gap:3px; min-width:155px; }
+.hud-side.r { align-items:flex-end; }
+.hud-nm { font-family:'Bangers',cursive; font-size:14px; letter-spacing:2px; }
+.hud-nm.h { color:var(--hero); text-shadow:0 0 6px var(--hero); }
+.hud-nm.v { color:var(--villain); text-shadow:0 0 6px var(--villain); }
+.hud-lbl { font-size:7px; letter-spacing:2px; color:rgba(255,255,255,0.35); text-transform:uppercase; }
+.bar-bg { width:155px; height:11px; background:rgba(0,0,0,0.55); border:1px solid rgba(255,255,255,0.18); border-radius:6px; overflow:hidden; }
+.bar-f { height:100%; border-radius:6px; transition:width 0.18s; position:relative; }
+.bar-f::after { content:''; position:absolute; top:0; left:0; right:0; height:50%; background:rgba(255,255,255,0.22); border-radius:6px 6px 0 0; }
+.bar-f.ctrl  { background:linear-gradient(90deg,var(--hero),#0080ff); }
+.bar-f.noise { background:linear-gradient(90deg,var(--villain),#ff8c00); }
+
+#waveBadge {
+  position:absolute; top:10px; left:50%; transform:translateX(-50%);
+  font-family:'Bangers',cursive; font-size:12px; letter-spacing:3px;
+  color:var(--gold); text-shadow:0 0 6px var(--gold);
+  background:rgba(0,0,0,0.45); border:1px solid rgba(255,228,77,0.3);
+  padding:3px 12px; border-radius:20px; pointer-events:none; z-index:10;
+}
+
+#muteHud {
+  position:absolute; bottom:12px; left:50%; transform:translateX(-50%);
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  pointer-events:none; z-index:10;
+}
+.mute-lbl { font-size:8px; letter-spacing:3px; color:var(--mute); text-shadow:0 0 6px var(--mute); }
+.mute-bg  { width:110px; height:5px; background:rgba(255,255,255,0.08); border-radius:3px; border:1px solid rgba(167,139,250,0.25); }
+.mute-f   { height:100%; background:var(--mute); border-radius:3px; box-shadow:0 0 6px var(--mute); transition:width 0.1s; }
+
+#pauseBtn {
+  position:absolute; bottom:12px; right:12px; z-index:10;
+  font-size:10px; padding:5px 11px; background:rgba(255,255,255,0.07);
+  border:1px solid rgba(255,255,255,0.18); color:rgba(255,255,255,0.5);
+  cursor:pointer; border-radius:6px; letter-spacing:2px;
+}
+#pauseBtn:hover { background:rgba(255,255,255,0.14); color:#fff; }
+
+/* Pause overlay */
+#pauseOv {
+  display:none; position:absolute; inset:0;
+  background:rgba(0,0,10,0.78); z-index:20;
+  flex-direction:column; align-items:center; justify-content:center; gap:16px;
+}
+#pauseOv.on { display:flex; }
+.pov-title { font-family:'Bangers',cursive; font-size:48px; color:#fff; letter-spacing:6px; text-shadow:0 0 18px var(--hero); }
+.pov-sub   { font-size:11px; letter-spacing:3px; color:rgba(255,255,255,0.35); }
+.ov-btn {
+  font-family:'Bangers',cursive; font-size:17px; letter-spacing:3px;
+  padding:10px 34px; background:rgba(255,255,255,0.08);
+  border:2px solid rgba(255,255,255,0.25); color:#fff;
+  cursor:pointer; border-radius:8px; transition:all 0.15s;
+}
+.ov-btn:hover { background:rgba(255,255,255,0.18); border-color:#fff; }
+
+/* ══════════ RESULT SCREEN ══════════ */
+#resultScreen {
+  min-height:100vh; gap:14px; z-index:1;
+  background:radial-gradient(ellipse at 50% 40%, #001a28 0%, var(--dark) 65%);
+}
+#resultScreen.lose { background:radial-gradient(ellipse at 50% 40%, #200005 0%, var(--dark) 65%); }
+
+.res-title {
+  font-family:'Bangers',cursive; font-size:clamp(38px,8vw,70px);
+  letter-spacing:6px; text-align:center; text-shadow:0 0 28px currentColor;
+}
+.res-title.win  { color:var(--hero); }
+.res-title.lose { color:var(--villain); }
+.res-sub { font-size:12px; color:rgba(255,255,255,0.45); letter-spacing:4px; text-align:center; }
+
+.res-stats { display:flex; gap:18px; flex-wrap:wrap; justify-content:center; }
+.stat-c {
+  background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);
+  border-radius:10px; padding:12px 22px; text-align:center;
+}
+.stat-v { font-family:'Bangers',cursive; font-size:26px; color:var(--gold); }
+.stat-l { font-size:8px; color:rgba(255,255,255,0.35); letter-spacing:3px; margin-top:2px; }
+
+.res-btns { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+.res-btn {
+  font-family:'Bangers',cursive; font-size:17px; letter-spacing:3px;
+  padding:11px 30px; border-radius:8px; cursor:pointer; border:none; transition:all 0.14s;
+}
+.res-btn.p { background:linear-gradient(135deg,var(--hero),#0070ee); color:#001; box-shadow:0 4px 0 #004488; }
+.res-btn.s { background:rgba(255,255,255,0.07); color:#fff; border:2px solid rgba(255,255,255,0.2); }
+.res-btn:hover { transform:translateY(-2px); }
+</style>
+</head>
+<body>
+
+<!-- ══════════ MENU SCREEN ══════════ -->
+<div id="menuScreen" class="screen active">
+  <div class="m-logo">PAVAN MANGALI<br><em>SILENCE YASHAS</em></div>
+  <div class="m-tag">THE ULTIMATE SHOWDOWN</div>
+
+  <div class="m-chars">
+    <div class="m-char">
+      <canvas id="menuPavan" width="80" height="115" style="image-rendering:pixelated"></canvas>
+      <div class="m-char-name h">PAVAN</div>
+    </div>
+    <div class="m-vs">VS</div>
+    <div class="m-char">
+      <canvas id="menuYashas" width="90" height="115" style="image-rendering:pixelated"></canvas>
+      <div class="m-char-name v">YASHAS</div>
+    </div>
+  </div>
+
+  <div class="m-diff">
+    <div class="m-diff-title">Select Difficulty</div>
+    <div class="m-diff-row">
+      <button class="d-btn"     data-d="easy"   onclick="setDiff('easy')">EASY</button>
+      <button class="d-btn sel" data-d="normal" onclick="setDiff('normal')">NORMAL</button>
+      <button class="d-btn"     data-d="hard"   onclick="setDiff('hard')">HARD</button>
+    </div>
+  </div>
+
+  <button class="m-start" onclick="startGame()">▶ START GAME</button>
+
+  <div class="m-ctrls">
+    <div class="m-ctrl"><b>← → / A D</b> Move</div>
+    <div class="m-ctrl"><b>↑ / W</b> Jump</div>
+    <div class="m-ctrl"><b>Z / J</b> Silence Strike</div>
+    <div class="m-ctrl"><b>X / K</b> Mute Mode</div>
+    <div class="m-ctrl"><b>P</b> Pause</div>
+  </div>
+</div>
+
+<!-- ══════════ GAME SCREEN ══════════ -->
+<div id="gameScreen" class="screen">
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-side">
+      <div class="hud-nm h">PAVAN MANGALI</div>
+      <div class="hud-lbl">Control Meter</div>
+      <div class="bar-bg"><div class="bar-f ctrl" id="ctrlBar" style="width:100%"></div></div>
+    </div>
+    <div class="hud-side r">
+      <div class="hud-nm v">YASHAS</div>
+      <div class="hud-lbl" style="text-align:right">Noise Meter</div>
+      <div class="bar-bg"><div class="bar-f noise" id="noiseBar" style="width:50%"></div></div>
+    </div>
+  </div>
+
+  <div id="waveBadge">ROUND 1</div>
+
+  <div id="muteHud">
+    <div class="mute-lbl">🔇 MUTE MODE</div>
+    <div class="mute-bg"><div class="mute-f" id="muteBar" style="width:100%"></div></div>
+  </div>
+
+  <button id="pauseBtn" onclick="togglePause()">❚❚ PAUSE</button>
+
+  <div id="pauseOv">
+    <div class="pov-title">PAUSED</div>
+    <div class="pov-sub">— breathe, pavan —</div>
+    <button class="ov-btn" onclick="togglePause()">▶ RESUME</button>
+    <button class="ov-btn" onclick="toMenu()">⌂ MENU</button>
+  </div>
+</div>
+
+<!-- ══════════ RESULT SCREEN ══════════ -->
+<div id="resultScreen" class="screen">
+  <div class="res-title" id="resTitle">SILENCED!</div>
+  <div class="res-sub"   id="resSub">YASHAS HAS BEEN SILENCED!</div>
+  <canvas id="resCanvas" width="220" height="190" style="image-rendering:pixelated;margin:6px 0"></canvas>
+  <div class="res-stats">
+    <div class="stat-c"><div class="stat-v" id="sTime">0:00</div><div class="stat-l">TIME</div></div>
+    <div class="stat-c"><div class="stat-v" id="sStrikes">0</div><div class="stat-l">STRIKES</div></div>
+    <div class="stat-c"><div class="stat-v" id="sMutes">0</div><div class="stat-l">MUTES USED</div></div>
+  </div>
+  <div class="res-btns">
+    <button class="res-btn p" onclick="startGame()">▶ PLAY AGAIN</button>
+    <button class="res-btn s" onclick="toMenu()">⌂ MENU</button>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   PAVAN MANGALI: SILENCE YASHAS — Game Engine
+   ─────────────────────────────────────────────────────
+   Sections:
+   1. Canvas & Constants
+   2. Difficulty Config
+   3. Game State
+   4. Character Objects
+   5. Particle System
+   6. Input Handler
+   7. Character Drawing (Pavan + Yashas pixel-art)
+   8. Game Logic (update)
+   9. Rendering (draw)
+   10. Screen Management
+   11. Boot
+═══════════════════════════════════════════════════════ */
+
+/* ── 1. CANVAS & CONSTANTS ── */
+const canvas  = document.getElementById('gameCanvas');
+const ctx     = canvas.getContext('2d');
+const GW = 920, GH = 570;             // logical game size
+canvas.width  = GW;
+canvas.height = GH;
+const GROUND_Y = GH - 95;             // y of ground surface
+const GRAVITY  = 0.52;
+
+/* ── 2. DIFFICULTY CONFIG ── */
+const DIFFS = {
+  easy:   { noiseRate:0.007, ySpeed:1.1, bSpeed:2.4, bInterval:165, noiseDmg:3,  strikeDmg:20 },
+  normal: { noiseRate:0.014, ySpeed:1.7, bSpeed:3.4, bInterval:115, noiseDmg:6,  strikeDmg:15 },
+  hard:   { noiseRate:0.023, ySpeed:2.5, bSpeed:5.0, bInterval:72,  noiseDmg:10, strikeDmg:12 },
+};
+let diff = 'normal';
+
+function setDiff(d) {
+  diff = d;
+  document.querySelectorAll('.d-btn').forEach(b => b.classList.toggle('sel', b.dataset.d === d));
+}
+
+/* ── 3. GAME STATE ── */
+let running = false, paused = false, over = false;
+let noise = 50, control = 100;
+let muteCd = 0;          // ticks until mute is ready again
+const MUTE_MAX = 420;
+let muteOn = false, muteTimer = 0;
+let round = 1, ticks = 0;
+let strikes = 0, mutes = 0;
+let particles = [], bullets = [];
+
+/* ── 4. CHARACTER OBJECTS ── */
+// Pavan — hero
+const P = {
+  x:130, y:0, vx:0, vy:0,
+  w:44, h:82, onGnd:true, facing:1,
+  state:'idle',        // idle | walk | jump | strike | mute
+  strikeT:0,           // ticks remaining in strike animation
+  bobT:0, bob:0,
+  speed:4.6, jump:-13.5,
+};
+
+// Yashas — villain
+const Y = {
+  x:700, y:0, vx:0, vy:0,
+  w:52, h:90, onGnd:true, facing:-1,
+  state:'taunt',
+  stateT:80,
+  bulletT:0,
+  mouthT:0, mouthVal:0,  // 0-1 animated mouth open
+  blaT:0,                // next BLA text timer
+  shakeX:0,
+};
+
+/* ── 5. PARTICLE SYSTEM ── */
+// types: spark | text | ring | wave | mute
+function mkParticle(o) { particles.push(o); }
+
+function blaText(x, y) {
+  const words = ['BLA!','BLAH!','YAK!','BLEH!','NOISE!','HEY!','LOUD!','AHHH!','!!!'];
+  const cols  = ['#ff4e6a','#ff8c00','#ffe44d','#ff6688'];
+  mkParticle({
+    type:'text', x: x+(Math.random()-0.5)*70, y,
+    vx:(Math.random()-0.5)*1.5, vy:-2.8-Math.random()*1.2,
+    life:1, text:words[Math.floor(Math.random()*words.length)],
+    col:cols[Math.floor(Math.random()*cols.length)],
+    sz: 13+Math.floor(Math.random()*13),
+  });
+}
+
+function silenceSparks(x, y) {
+  for (let i=0; i<20; i++) {
+    const a = (i/20)*Math.PI*2, s = 3+Math.random()*4.5;
+    const cols = ['#3ecfff','#a78bfa','#ffffff','#00ffcc'];
+    mkParticle({ type:'spark', x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s,
+      life:1, r:2+Math.random()*3.5, col:cols[i%cols.length] });
+  }
+  mkParticle({ type:'ring', x, y, r:5, maxR:120, life:1, col:'#3ecfff' });
+}
+
+function muteAura(x, y) {
+  for (let i=0; i<32; i++) {
+    const a=(i/32)*Math.PI*2, s=6+Math.random()*6;
+    mkParticle({ type:'mute', x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s,
+      life:1, r:4+Math.random()*6, col:'#a78bfa' });
+  }
+  mkParticle({ type:'ring', x, y, r:5, maxR:200, life:1, col:'#a78bfa' });
+}
+
+function hitFlash(x, y) {
+  for (let i=0; i<12; i++) {
+    mkParticle({ type:'spark', x, y:y-20+(Math.random()-0.5)*50,
+      vx:(Math.random()-0.5)*6, vy:-4-Math.random()*3,
+      life:1, r:4, col:'#ffffff' });
+  }
+  mkParticle({ type:'text', x, y:y-55, vx:0, vy:-2.2,
+    life:1, text:'SILENCED!', col:'#3ecfff', sz:20 });
+}
+
+/* ── 6. INPUT ── */
+const keys = {};
+document.addEventListener('keydown', e => {
+  if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space'].includes(e.code)) e.preventDefault();
+  keys[e.code] = true;
+  if (!running || paused) return;
+  if (e.code==='ArrowUp'||e.code==='KeyW') doJump();
+  if (e.code==='KeyZ'||e.code==='KeyJ')    doStrike();
+  if (e.code==='KeyX'||e.code==='KeyK')    doMute();
+  if (e.code==='KeyP')                     togglePause();
+});
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+function doJump() {
+  if (P.onGnd) { P.vy = P.jump; P.onGnd = false; P.state='jump'; }
+}
+
+function doStrike() {
+  if (P.strikeT > 0 || muteOn) return;
+  P.strikeT = 28; P.state = 'strike'; strikes++;
+  // Check range
+  const dx = Math.abs(P.x - Y.x), dy = Math.abs(P.y - Y.y);
+  if (dx < 220 && dy < 110) {
+    const D = DIFFS[diff];
+    noise = Math.max(0, noise - D.strikeDmg);
+    Y.state = 'hurt'; Y.stateT = 30; Y.shakeX = 8;
+    silenceSparks(Y.x + Y.w/2, Y.y + 35);
+    hitFlash(Y.x + Y.w/2, Y.y);
+    if (noise <= 0) win();
+  } else {
+    silenceSparks(P.x + (P.facing>0 ? P.w+30 : -30), P.y + 22);
+  }
+}
+
+function doMute() {
+  if (muteCd > 0 || muteOn) return;
+  muteOn = true; muteTimer = 200; muteCd = MUTE_MAX; mutes++;
+  muteAura(P.x + P.w/2, P.y + P.h/2);
+  noise = Math.max(0, noise - 22);
+  if (noise <= 0) win();
+}
+
+/* ── 7a. DRAW PAVAN ── */
+/**
+ * Draw Pavan Mangali — serious, focused anime hero
+ * x,y = center-bottom foot position
+ * facing = 1 (right) or -1 (left)
+ * state = idle|walk|jump|strike|mute
+ * st = strikeTimer (remaining frames)
+ */
+function drawPavan(x, y, facing, state, st) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(facing, 1);
+  ctx.imageSmoothingEnabled = false;
+
+  // Walk bob
+  const wb = (state==='walk') ? Math.sin(ticks*0.28)*3.5 : 0;
+  const jb = (state==='jump') ? -6 : wb;
+  ctx.translate(0, jb);
+
+  // ── LEGS ──
+  const ls = (state==='walk') ? Math.sin(ticks*0.28)*12 : 0;
+  // Back leg
+  ctx.save(); ctx.translate(-12, -22); ctx.rotate((ls)*Math.PI/180);
+  ctx.fillStyle='#162040'; ctx.fillRect(-5,0,11,30);
+  ctx.fillStyle='#0a1428'; ctx.fillRect(-6,24,13,7); // boot
+  ctx.fillStyle='#304060'; ctx.fillRect(-5,0,11,3);  // band
+  ctx.restore();
+  // Front leg
+  ctx.save(); ctx.translate(12, -22); ctx.rotate((-ls)*Math.PI/180);
+  ctx.fillStyle='#1e2e50'; ctx.fillRect(-6,0,12,30);
+  ctx.fillStyle='#0a1428'; ctx.fillRect(-7,24,14,7);
+  ctx.fillStyle='#3a4a70'; ctx.fillRect(-6,0,12,3);
+  ctx.restore();
+
+  // ── BODY ──
+  ctx.fillStyle = '#0d2448';
+  ctx.fillRect(-17,-78,34,58);
+  // Jacket stripes (hero)
+  ctx.fillStyle = '#3ecfff';
+  ctx.fillRect(-17,-78,3,58);   // left
+  ctx.fillRect(14,-78,3,58);    // right
+  ctx.fillRect(-17,-78,34,3);   // top collar
+  // Chest emblem
+  ctx.fillStyle='#3ecfff'; ctx.shadowColor='#3ecfff'; ctx.shadowBlur=8;
+  ctx.beginPath(); ctx.arc(0,-52,6,0,Math.PI*2); ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.fillStyle='#001122';
+  ctx.beginPath(); ctx.arc(0,-52,3,0,Math.PI*2); ctx.fill();
+  // Belt
+  ctx.fillStyle='#0a1830'; ctx.fillRect(-17,-22,34,6);
+  ctx.fillStyle='#3ecfff'; ctx.fillRect(-5,-22,10,6);
+
+  // ── ARMS ──
+  const strikeArm = st > 0;
+  // Left arm
+  ctx.fillStyle='#0d2448'; ctx.fillRect(-28,-76,13,36);
+  ctx.fillStyle='#c8844a'; ctx.fillRect(-28,-41,12,11); // hand
+
+  // Right arm — punching if striking
+  if (strikeArm) {
+    ctx.save();
+    ctx.translate(17,-74); ctx.rotate(-28*Math.PI/180);
+    ctx.fillStyle='#0d2448'; ctx.fillRect(0,0,14,40);
+    // glowing fist
+    ctx.fillStyle='#3ecfff'; ctx.shadowColor='#3ecfff'; ctx.shadowBlur=18;
+    ctx.fillRect(0,30,18,14); ctx.shadowBlur=0;
+    ctx.restore();
+  } else {
+    ctx.fillStyle='#0d2448'; ctx.fillRect(15,-76,13,36);
+    ctx.fillStyle='#c8844a'; ctx.fillRect(17,-41,12,11);
+  }
+
+  // ── NECK ──
+  ctx.fillStyle='#c8844a'; ctx.fillRect(-5,-84,10,8);
+
+  // ── HEAD ──
+  ctx.fillStyle='#c8844a'; ctx.fillRect(-15,-122,30,38);
+  ctx.fillStyle='#a06838'; ctx.fillRect(-15,-92,30,8); // jaw shadow
+
+  // ── HAIR — dark spiky anime ──
+  ctx.fillStyle='#0a0a12';
+  ctx.fillRect(-17,-130,34,14);      // base
+  ctx.fillRect(-21,-124,9,8);        // left spike
+  ctx.fillRect(12,-126,9,12);        // right spike
+  ctx.fillRect(-4,-136,8,10);        // top center
+  ctx.fillRect(-13,-132,7,8);        // left mid
+  ctx.fillRect(6,-130,8,8);          // right mid
+  ctx.fillStyle='#1e1e2a';           // shine
+  ctx.fillRect(-8,-130,4,12);
+
+  // ── EYES — sharp, determined ──
+  ctx.fillStyle='#fff';
+  ctx.fillRect(-12,-112,9,8); ctx.fillRect(3,-112,9,8);
+  ctx.fillStyle='#3ecfff';
+  ctx.fillRect(-9,-110,5,5);  ctx.fillRect(5,-110,5,5);
+  ctx.fillStyle='#000';
+  ctx.fillRect(-8,-109,3,3);  ctx.fillRect(6,-109,3,3);
+  ctx.fillStyle='#fff';       // glint
+  ctx.fillRect(-7,-110,1,1);  ctx.fillRect(7,-110,1,1);
+  // Eyebrows — stern
+  ctx.fillStyle='#0a0a12';
+  ctx.fillRect(-13,-115,10,3); ctx.fillRect(3,-115,10,3);
+  ctx.fillRect(-13,-117,4,2);  ctx.fillRect(9,-117,4,2); // angled inner
+
+  // ── MOUTH — tight, focused ──
+  ctx.fillStyle='#7a4428'; ctx.fillRect(-5,-100,10,3);
+
+  // ── NAME BELOW CHARACTER ──
+  ctx.scale(1/facing, 1); // un-flip text
+  ctx.font = '900 12px Bangers,cursive';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#3ecfff'; ctx.strokeStyle='#001122'; ctx.lineWidth=3;
+  ctx.shadowColor='#3ecfff'; ctx.shadowBlur=8;
+  ctx.strokeText('PAVAN', 0, 22);  // below feet
+  ctx.fillText('PAVAN', 0, 22);
+  ctx.shadowBlur=0;
+
+  // Strike flash overlay
+  if (strikeArm) {
+    ctx.scale(facing, 1);
+    ctx.fillStyle='rgba(62,207,255,0.18)';
+    ctx.fillRect(-22,-138,44,130);
+  }
+
+  ctx.restore();
+}
+
+/* ── 7b. DRAW YASHAS ── */
+/**
+ * Draw Yashas — loud, exaggerated anime villain
+ * mouth = 0-1 open amount
+ */
+function drawYashas(x, y, facing, state, mouth) {
+  ctx.save();
+  ctx.translate(x + (Y.shakeX||0), y);
+  ctx.scale(facing, 1);
+  ctx.imageSmoothingEnabled = false;
+
+  const hurt  = state==='hurt';
+  const shout = state==='shout';
+  const ls    = (state==='walk') ? Math.sin(ticks*0.22)*12 : 0;
+
+  // ── LEGS ──
+  ctx.save(); ctx.translate(-12,-26); ctx.rotate(ls*Math.PI/180);
+  ctx.fillStyle='#5a2808'; ctx.fillRect(-6,0,12,28);
+  ctx.fillStyle='#3a1604'; ctx.fillRect(-7,22,14,7);
+  ctx.restore();
+  ctx.save(); ctx.translate(12,-26); ctx.rotate(-ls*Math.PI/180);
+  ctx.fillStyle='#6a3010'; ctx.fillRect(-6,0,12,28);
+  ctx.fillStyle='#3a1604'; ctx.fillRect(-7,22,14,7);
+  ctx.restore();
+
+  // ── BODY — orange-red loud hoodie ──
+  ctx.fillStyle = hurt ? '#5a1400' : '#c83800';
+  ctx.fillRect(-20,-84,40,58);
+  // Hoodie pocket
+  ctx.fillStyle = hurt ? '#4a1000' : '#a82800';
+  ctx.fillRect(-12,-48,24,20); ctx.fillRect(-12,-48,24,3);
+  // Noise lines
+  if (!hurt) {
+    ctx.strokeStyle='#ff5500'; ctx.lineWidth=2;
+    for (let i=0;i<3;i++) {
+      ctx.beginPath();
+      ctx.moveTo(-14+i*14,-79); ctx.lineTo(-14+i*14+4,-30); ctx.stroke();
+    }
+  }
+
+  // ── ARMS — flailing / gesturing ──
+  const aw = shout ? Math.sin(ticks*0.3)*20 : (hurt?28:6);
+  ctx.fillStyle = hurt ? '#5a1400' : '#c83800';
+  ctx.save(); ctx.translate(-20,-80); ctx.rotate(-aw*Math.PI/180);
+  ctx.fillRect(-11,0,13,38);
+  ctx.fillStyle='#d0784a'; ctx.fillRect(-11,28,13,12); ctx.restore();
+  ctx.save(); ctx.translate(20,-80); ctx.rotate(aw*Math.PI/180);
+  ctx.fillRect(-2,0,13,38);
+  ctx.fillStyle='#d0784a'; ctx.fillRect(-2,28,13,12); ctx.restore();
+
+  // ── NECK ──
+  ctx.fillStyle='#d0784a'; ctx.fillRect(-6,-92,12,10);
+
+  // ── HEAD — round, expressive ──
+  ctx.fillStyle='#d0784a'; ctx.fillRect(-19,-136,38,44);
+  // Cheek flush
+  ctx.fillStyle='rgba(255,80,80,0.38)';
+  ctx.beginPath(); ctx.arc(-13,-112,7,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(13,-112,7,0,Math.PI*2); ctx.fill();
+
+  // ── HAIR — messy wild ──
+  ctx.fillStyle='#1a0800';
+  ctx.fillRect(-21,-144,42,14);        // base
+  ctx.fillRect(-25,-138,11,8);         // left puff
+  ctx.fillRect(14,-140,11,10);         // right puff
+  ctx.fillRect(-9,-150,7,10);          // left tuft
+  ctx.fillRect(2,-152,9,12);           // right tuft
+  ctx.fillRect(-17,-148,8,8);          // ear lock
+  ctx.fillStyle='#3a1800'; ctx.fillRect(-5,-144,6,10); // gloss
+
+  // ── EYES ──
+  if (hurt) {
+    // Spiral eyes when hurt
+    ctx.strokeStyle='#ff4e6a'; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.arc(-9,-126,5,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(-9,-126,2,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(9,-126,5,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(9,-126,2,0,Math.PI*2); ctx.stroke();
+  } else {
+    // Wide excited eyes
+    ctx.fillStyle='#fff';
+    ctx.fillRect(-15,-130,11,11); ctx.fillRect(4,-130,11,11);
+    ctx.fillStyle='#2a1a00';
+    ctx.fillRect(-12,-128,5,6);  ctx.fillRect(7,-128,5,6);
+    ctx.fillStyle='#fff'; // glint
+    ctx.fillRect(-11,-128,2,2);  ctx.fillRect(8,-128,2,2);
+    // Raised brows (excited/angry)
+    ctx.fillStyle='#1a0800';
+    ctx.fillRect(-16,-133,12,3); ctx.fillRect(4,-134,12,3);
+  }
+
+  // ── MOUTH — big animated opening ──
+  const mh = hurt ? 3 : Math.max(4, mouth*24);
+  ctx.fillStyle='#1a0000';
+  ctx.fillRect(-13,-114,26,mh);
+  if (!hurt && mouth>0.25) {
+    ctx.fillStyle='#f0f0e0'; // teeth top
+    ctx.fillRect(-11,-114,9,6); ctx.fillRect(-1,-114,9,6); ctx.fillRect(9,-114,4,6);
+  }
+  if (mouth>0.55 && !hurt) {
+    ctx.fillStyle='#ff4466'; // tongue
+    ctx.fillRect(-7,-108,14,6);
+  }
+
+  // ── YASHAS NAME — always visible, above head ──
+  ctx.scale(1/facing,1); // un-flip text
+  ctx.font='900 15px Bangers,cursive';
+  ctx.textAlign='center';
+  ctx.fillStyle='#ff4e6a'; ctx.strokeStyle='#220000'; ctx.lineWidth=4;
+  ctx.shadowColor='#ff4e6a'; ctx.shadowBlur=14;
+  ctx.strokeText('YASHAS', 0, -155);
+  ctx.fillText('YASHAS', 0, -155);
+  ctx.shadowBlur=0;
+
+  // Animated underline under name
+  ctx.strokeStyle='#ff4e6a'; ctx.lineWidth=2;
+  const uw = 50+8*Math.sin(ticks*0.1);
+  ctx.beginPath(); ctx.moveTo(-uw/2,-149); ctx.lineTo(uw/2,-149); ctx.stroke();
+
+  // Sub-label
+  ctx.font='7px Bangers,cursive'; ctx.fillStyle='rgba(255,78,106,0.55)';
+  ctx.fillText('THE NOISEMAKER', 0, -140);
+
+  ctx.restore();
+}
+
+/* ── 8. UPDATE ── */
+function update() {
+  if (!running || paused || over) return;
+  ticks++;
+  const D = DIFFS[diff];
+
+  /* PAVAN MOVEMENT */
+  let mv = false;
+  if (keys['ArrowLeft']||keys['KeyA'])  { P.vx=-P.speed; P.facing=-1; mv=true; }
+  else if (keys['ArrowRight']||keys['KeyD']) { P.vx=P.speed; P.facing=1; mv=true; }
+  else P.vx *= 0.65;
+
+  P.vy += GRAVITY;
+  P.x  += P.vx; P.y += P.vy;
+
+  if (P.y >= GROUND_Y-P.h) { P.y=GROUND_Y-P.h; P.vy=0; P.onGnd=true; if(P.state==='jump') P.state='idle'; }
+  else P.onGnd = false;
+  P.x = Math.max(0, Math.min(GW-P.w, P.x));
+
+  // Bob animation
+  P.bobT += 0.1;
+  P.bob = (P.onGnd && mv) ? Math.sin(P.bobT*2)*3.5 : 0;
+
+  // State
+  if (P.strikeT > 0) { P.strikeT--; P.state='strike'; }
+  else if (!mv && P.onGnd) P.state='idle';
+  else if (mv && P.onGnd)  P.state='walk';
+
+  // Mute
+  if (muteOn) {
+    muteTimer--;
+    if (muteTimer<=0) { muteOn=false; P.state='idle'; }
+    noise = Math.max(0, noise-0.28);
+    if (noise<=0) win();
+  }
+  if (muteCd>0) muteCd--;
+
+  /* YASHAS AI */
+  Y.shakeX *= 0.72;
+  Y.mouthT += 0.16;
+  Y.mouthVal = (Math.sin(Y.mouthT)+1)/2;
+  Y.stateT--;
+
+  if (Y.state==='hurt') {
+    Y.vx=0;
+    if (Y.stateT<=0) { Y.state='taunt'; Y.stateT=60; }
+  } else if (muteOn) {
+    Y.vx=0; Y.state='hurt'; Y.stateT=8;
+    Y.shakeX=(Math.random()-0.5)*7;
+  } else {
+    const dx = P.x - Y.x;
+    Y.facing = dx>0 ? 1 : -1;
+    Y.vx = Math.abs(dx)>200 ? Y.facing*D.ySpeed : Y.facing*D.ySpeed*0.25;
+    Y.state = Math.abs(dx)<200 ? 'shout' : 'walk';
+
+    // BLA text
+    Y.blaT--;
+    if (Y.blaT<=0) { blaText(Y.x+Y.w/2, Y.y); Y.blaT=28+Math.floor(Math.random()*38); }
+
+    // Sound bullets
+    Y.bulletT--;
+    if (Y.bulletT<=0) {
+      Y.bulletT = D.bInterval;
+      const bvx = Y.facing * D.bSpeed;
+      bullets.push({ x:Y.x+Y.w/2, y:Y.y+46, vx:bvx, vy:(Math.random()-0.5)*0.4, r:13, life:1 });
+    }
+  }
+
+  // Yashas physics
+  Y.vy += GRAVITY; Y.x += Y.vx; Y.y += Y.vy;
+  if (Y.y >= GROUND_Y-Y.h) { Y.y=GROUND_Y-Y.h; Y.vy=0; Y.onGnd=true; }
+  Y.x = Math.max(0, Math.min(GW-Y.w, Y.x));
+
+  /* SOUND BULLETS */
+  bullets.forEach(b => {
+    b.x += b.vx; b.y += b.vy; b.life -= 0.007;
+    if (!muteOn && b.x>P.x && b.x<P.x+P.w && b.y>P.y && b.y<P.y+P.h) {
+      b.life=0;
+      control = Math.max(0, control-D.noiseDmg);
+      blaText(P.x+P.w/2, P.y);
+      if (control<=0) lose();
+    }
+  });
+  bullets = bullets.filter(b=>b.life>0&&b.x>-60&&b.x<GW+60);
+
+  /* NOISE GROWS OVER TIME */
+  if (!muteOn) {
+    noise += D.noiseRate;
+    if (noise>=100) lose();
+  }
+
+  /* PARTICLES */
+  particles.forEach(p => {
+    p.x += p.vx||0; p.y += p.vy||0; p.life -= 0.022;
+    if (p.type==='spark') { p.vy+=0.22; p.vx*=0.91; p.vy*=0.91; }
+    if (p.type==='mute')  { p.vx*=0.86; p.vy*=0.86; }
+    if (p.type==='ring')  { p.r=p.maxR*(1-p.life); }
+    if (p.type==='text')  { p.life-=0.009; }
+    if (p.type==='wave')  { p.r+=2; }
+  });
+  particles = particles.filter(p=>p.life>0);
+
+  /* ROUND UP */
+  if (ticks%1800===0) { round++; document.getElementById('waveBadge').textContent=`ROUND ${round}`; noise=Math.min(100,noise+7); }
+
+  /* HUD */
+  document.getElementById('noiseBar').style.width  = Math.max(0,Math.min(100,noise))+'%';
+  document.getElementById('ctrlBar').style.width   = Math.max(0,Math.min(100,control))+'%';
+  const mp = muteCd>0 ? ((MUTE_MAX-muteCd)/MUTE_MAX)*100 : 100;
+  document.getElementById('muteBar').style.width   = mp+'%';
+}
+
+/* ── 9. RENDER ── */
+function render() {
+  /* BACKGROUND */
+  // Sky
+  const sky = ctx.createLinearGradient(0,0,0,GH);
+  sky.addColorStop(0,'#06041a'); sky.addColorStop(0.65,'#0e0c28'); sky.addColorStop(1,'#16144a');
+  ctx.fillStyle=sky; ctx.fillRect(0,0,GW,GH);
+
+  // Stars
+  ctx.fillStyle='rgba(255,255,255,0.55)';
+  const sp=[[80,40],[200,65],[360,22],[480,75],[640,30],[780,58],[870,18],[140,115],[420,95],[720,88],[55,160],[900,140]];
+  sp.forEach(([sx,sy])=>{
+    ctx.beginPath(); ctx.arc(sx,sy+Math.sin(ticks*0.006+sx)*1.2,1.4,0,Math.PI*2); ctx.fill();
+  });
+
+  // City silhouette
+  ctx.fillStyle='rgba(14,10,36,0.85)';
+  [[0,425,90,90],[95,435,65,80],[170,420,110,100],[295,410,75,110],[380,430,95,80],[490,415,55,100],[560,408,130,107],[700,430,70,80],[780,415,90,95],[880,410,60,110]].forEach(([bx,by,bw,bh])=>{
+    ctx.fillRect(bx,by,bw,bh);
+  });
+  // Window lights
+  ctx.fillStyle='rgba(255,220,80,0.28)';
+  for(let i=0;i<35;i++){
+    const wx=8+(i*27)%GW, wy=418+Math.floor(i*9)%90;
+    if(Math.sin(i*3.3+ticks*0.018)>0.15) ctx.fillRect(wx,wy,4,6);
+  }
+
+  // Ground
+  const grd=ctx.createLinearGradient(0,GROUND_Y,0,GH);
+  grd.addColorStop(0,'#24245e'); grd.addColorStop(1,'#0e0e2e');
+  ctx.fillStyle=grd; ctx.fillRect(0,GROUND_Y,GW,GH-GROUND_Y);
+
+  ctx.strokeStyle='rgba(100,100,255,0.65)'; ctx.lineWidth=2;
+  ctx.shadowColor='rgba(100,100,255,0.8)'; ctx.shadowBlur=8;
+  ctx.beginPath(); ctx.moveTo(0,GROUND_Y); ctx.lineTo(GW,GROUND_Y); ctx.stroke();
+  ctx.shadowBlur=0;
+  // Ground grid
+  ctx.strokeStyle='rgba(70,70,160,0.14)'; ctx.lineWidth=1;
+  for(let gx=0;gx<GW;gx+=65){
+    ctx.beginPath(); ctx.moveTo(gx,GROUND_Y); ctx.lineTo(gx-35,GH); ctx.stroke();
+  }
+
+  if (!running) return;
+
+  /* RING PARTICLES (behind everything) */
+  particles.filter(p=>p.type==='ring').forEach(p=>{
+    ctx.save(); ctx.globalAlpha=p.life*0.55;
+    ctx.strokeStyle=p.col; ctx.lineWidth=3; ctx.shadowColor=p.col; ctx.shadowBlur=10;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.stroke();
+    ctx.restore();
+  });
+
+  /* SOUND BULLETS */
+  bullets.forEach(b=>{
+    ctx.save(); ctx.globalAlpha=b.life;
+    const pulse=1+0.22*Math.sin(ticks*0.3);
+    const bg=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r*pulse);
+    bg.addColorStop(0,'rgba(255,255,255,0.95)');
+    bg.addColorStop(0.35,'rgba(255,78,106,0.95)');
+    bg.addColorStop(1,'rgba(255,78,106,0)');
+    ctx.fillStyle=bg; ctx.shadowColor='#ff4e6a'; ctx.shadowBlur=18;
+    ctx.beginPath(); ctx.arc(b.x,b.y,b.r*pulse,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.font='bold 11px Bangers,cursive'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.shadowBlur=0;
+    ctx.fillText('!',b.x,b.y);
+    ctx.restore();
+  });
+
+  /* YASHAS */
+  drawYashas(Y.x+Y.w/2, Y.y+Y.h, Y.facing, Y.state, Y.mouthVal);
+
+  /* PAVAN */
+  drawPavan(P.x+P.w/2, P.y+P.h+P.bob, P.facing, P.state, P.strikeT);
+
+  /* MUTE AURA AROUND PAVAN */
+  if (muteOn) {
+    const cx2=P.x+P.w/2, cy2=P.y+P.h/2;
+    const pulse=1+0.14*Math.sin(ticks*0.25);
+    const ag=ctx.createRadialGradient(cx2,cy2,20,cx2,cy2,140*pulse);
+    ag.addColorStop(0,'rgba(167,139,250,0.14)'); ag.addColorStop(0.55,'rgba(167,139,250,0.07)'); ag.addColorStop(1,'transparent');
+    ctx.fillStyle=ag; ctx.beginPath(); ctx.arc(cx2,cy2,140*pulse,0,Math.PI*2); ctx.fill();
+    // Orbiting mute icons
+    for(let i=0;i<6;i++){
+      const a=(i/6)*Math.PI*2+ticks*0.04;
+      ctx.save(); ctx.globalAlpha=0.75;
+      ctx.font='16px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('🔇',cx2+Math.cos(a)*100,cy2+Math.sin(a)*100);
+      ctx.restore();
+    }
+  }
+
+  /* SPARK / MUTE / TEXT PARTICLES (front layer) */
+  particles.forEach(p=>{
+    if (p.type==='spark'||p.type==='mute') {
+      ctx.save(); ctx.globalAlpha=p.life;
+      ctx.fillStyle=p.col; ctx.shadowColor=p.col; ctx.shadowBlur=7;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r*p.life,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+    if (p.type==='text') {
+      ctx.save(); ctx.globalAlpha=p.life;
+      ctx.font=`900 ${p.sz}px Bangers,cursive`;
+      ctx.textAlign='center'; ctx.fillStyle=p.col; ctx.strokeStyle='#000'; ctx.lineWidth=3;
+      ctx.shadowColor=p.col; ctx.shadowBlur=10;
+      ctx.strokeText(p.text,p.x,p.y); ctx.fillText(p.text,p.x,p.y);
+      ctx.restore();
+    }
+  });
+}
+
+/* ── GAME LOOP ── */
+function loop() {
+  if (!running || paused) return;
+  update();
+  render();
+  if (!over) requestAnimationFrame(loop);
+}
+
+/* ── 10. SCREEN MANAGEMENT ── */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function toMenu() {
+  running=false; paused=false;
+  document.getElementById('pauseOv').classList.remove('on');
+  showScreen('menuScreen');
+  drawMenuChars();
+}
+
+function togglePause() {
+  if (!running) return;
+  paused = !paused;
+  document.getElementById('pauseOv').classList.toggle('on', paused);
+  if (!paused) requestAnimationFrame(loop);
+}
+
+function startGame() {
+  // Full reset
+  noise=50; control=100; muteCd=0; muteOn=false; muteTimer=0;
+  round=1; ticks=0; strikes=0; mutes=0; over=false; paused=false;
+  particles=[]; bullets=[];
+
+  P.x=130; P.y=GROUND_Y-P.h; P.vx=0; P.vy=0; P.onGnd=true;
+  P.facing=1; P.state='idle'; P.strikeT=0; P.bobT=0; P.bob=0;
+
+  const D=DIFFS[diff];
+  Y.x=680; Y.y=GROUND_Y-Y.h; Y.vx=-D.ySpeed; Y.vy=0; Y.onGnd=true;
+  Y.facing=-1; Y.state='taunt'; Y.stateT=80; Y.bulletT=D.bInterval;
+  Y.mouthT=0; Y.mouthVal=0; Y.blaT=40; Y.shakeX=0;
+
+  document.getElementById('pauseOv').classList.remove('on');
+  document.getElementById('waveBadge').textContent='ROUND 1';
+  showScreen('gameScreen');
+  running=true;
+  requestAnimationFrame(loop);
+}
+
+function win() {
+  over=true; running=false;
+  const elapsed=Math.floor(ticks/60);
+  document.getElementById('resTitle').textContent='SILENCED!';
+  document.getElementById('resTitle').className='res-title win';
+  document.getElementById('resSub').textContent='YASHAS HAS BEEN SILENCED!';
+  document.getElementById('resultScreen').className='screen win';
+  document.getElementById('sTime').textContent=`${Math.floor(elapsed/60)}:${String(elapsed%60).padStart(2,'0')}`;
+  document.getElementById('sStrikes').textContent=strikes;
+  document.getElementById('sMutes').textContent=mutes;
+  // Result canvas scene
+  setTimeout(()=>{
+    const rc=document.getElementById('resCanvas');
+    const rx=rc.getContext('2d');
+    rx.clearRect(0,0,220,190);
+    // Draw a little win scene
+    rx.fillStyle='rgba(62,207,255,0.08)'; rx.fillRect(0,0,220,190);
+    drawPavanOnCtx(rx, 70, 165, 1, 'strike',14);
+    drawYashasOnCtx(rx, 155, 168, -1, 'hurt', 0);
+  }, 60);
+  showScreen('resultScreen');
+}
+
+function lose() {
+  over=true; running=false;
+  const elapsed=Math.floor(ticks/60);
+  document.getElementById('resTitle').textContent='TOO LOUD!';
+  document.getElementById('resTitle').className='res-title lose';
+  document.getElementById('resSub').textContent='YASHAS WAS TOO NOISY...';
+  document.getElementById('resultScreen').className='screen lose';
+  document.getElementById('sTime').textContent=`${Math.floor(elapsed/60)}:${String(elapsed%60).padStart(2,'0')}`;
+  document.getElementById('sStrikes').textContent=strikes;
+  document.getElementById('sMutes').textContent=mutes;
+  setTimeout(()=>{
+    const rc=document.getElementById('resCanvas');
+    const rx=rc.getContext('2d');
+    rx.clearRect(0,0,220,190);
+    rx.fillStyle='rgba(255,78,106,0.06)'; rx.fillRect(0,0,220,190);
+    drawPavanOnCtx(rx, 70, 165, 1, 'idle',0);
+    drawYashasOnCtx(rx, 155, 168, -1, 'taunt', 0.8);
+  }, 60);
+  showScreen('resultScreen');
+}
+
+/* ── MENU CHARACTER DRAW ── */
+// Wrappers that use an external canvas context instead of global ctx
+function drawPavanOnCtx(c, x, y, facing, state, st) {
+  const save=ctx; // swap global
+  // We draw directly on c
+  c.save(); c.translate(x,y); c.scale(facing,1); c.imageSmoothingEnabled=false;
+  const strikeArm=st>0;
+  c.fillStyle='#162040'; c.fillRect(-5,0,11,24); c.fillRect(-6,22,13,5);
+  c.fillStyle='#1e2e50'; c.fillRect(-6,0,12,24); c.fillRect(-7,22,14,5);
+  c.fillStyle='#0d2448'; c.fillRect(-17,-56,34,46);
+  c.fillStyle='#3ecfff'; c.fillRect(-17,-56,3,46); c.fillRect(14,-56,3,46);
+  c.fillStyle='#0d2448'; c.fillRect(-28,-54,13,28); c.fillStyle='#c8844a'; c.fillRect(-28,-28,12,8);
+  if(strikeArm){c.save();c.translate(17,-52);c.rotate(-28*Math.PI/180);c.fillStyle='#0d2448';c.fillRect(0,0,14,32);c.fillStyle='#3ecfff';c.shadowColor='#3ecfff';c.shadowBlur=14;c.fillRect(0,22,16,12);c.shadowBlur=0;c.restore();}else{c.fillStyle='#0d2448';c.fillRect(15,-54,13,28);c.fillStyle='#c8844a';c.fillRect(17,-28,12,8);}
+  c.fillStyle='#c8844a'; c.fillRect(-5,-62,10,7);
+  c.fillStyle='#c8844a'; c.fillRect(-15,-96,30,34);
+  c.fillStyle='#0a0a12'; c.fillRect(-17,-104,34,12); c.fillRect(-21,-100,9,7); c.fillRect(12,-102,9,10); c.fillRect(-4,-110,8,8); c.fillRect(-13,-106,7,7);
+  c.fillStyle='#fff'; c.fillRect(-12,-88,9,7); c.fillRect(3,-88,9,7);
+  c.fillStyle='#3ecfff'; c.fillRect(-9,-87,5,4); c.fillRect(5,-87,5,4);
+  c.fillStyle='#000'; c.fillRect(-8,-86,3,3); c.fillRect(6,-86,3,3);
+  c.fillStyle='#0a0a12'; c.fillRect(-13,-91,10,3); c.fillRect(3,-91,10,3);
+  c.fillStyle='#7a4428'; c.fillRect(-5,-77,10,3);
+  c.scale(1/facing,1);
+  c.font='900 10px Bangers,cursive'; c.textAlign='center';
+  c.fillStyle='#3ecfff'; c.strokeStyle='#001122'; c.lineWidth=2;
+  c.shadowColor='#3ecfff'; c.shadowBlur=6;
+  c.strokeText('PAVAN',0,16); c.fillText('PAVAN',0,16); c.shadowBlur=0;
+  c.restore();
+}
+
+function drawYashasOnCtx(c, x, y, facing, state, mouth) {
+  const hurt=state==='hurt';
+  c.save(); c.translate(x,y); c.scale(facing,1); c.imageSmoothingEnabled=false;
+  c.fillStyle=hurt?'#5a1400':'#6a3010'; c.fillRect(-6,0,12,22); c.fillRect(-7,20,14,6);
+  c.fillStyle=hurt?'#5a1400':'#7a3812'; c.fillRect(-6,0,12,22); c.fillRect(-7,20,14,6);
+  c.fillStyle=hurt?'#5a1400':'#c83800'; c.fillRect(-20,-62,40,46);
+  c.fillStyle=hurt?'#4a1000':'#a82800'; c.fillRect(-12,-34,24,16);
+  c.fillStyle='#d0784a'; c.fillRect(-20,-62,13,30); c.fillRect(-20,-32,13,10);
+  c.fillStyle='#d0784a'; c.fillRect(7,-62,13,30); c.fillRect(7,-32,13,10);
+  c.fillStyle='#d0784a'; c.fillRect(-6,-68,12,8);
+  c.fillStyle='#d0784a'; c.fillRect(-19,-108,38,40);
+  c.fillStyle='rgba(255,80,80,0.36)'; c.beginPath(); c.arc(-13,-88,6,0,Math.PI*2); c.fill(); c.beginPath(); c.arc(13,-88,6,0,Math.PI*2); c.fill();
+  c.fillStyle='#1a0800'; c.fillRect(-21,-116,42,12); c.fillRect(-25,-112,11,7); c.fillRect(14,-114,11,8); c.fillRect(-9,-122,7,8); c.fillRect(2,-124,9,10);
+  if(hurt){c.strokeStyle='#ff4e6a';c.lineWidth=2;c.beginPath();c.arc(-9,-100,4,0,Math.PI*2);c.stroke();c.beginPath();c.arc(9,-100,4,0,Math.PI*2);c.stroke();}
+  else{c.fillStyle='#fff';c.fillRect(-15,-104,11,10);c.fillRect(4,-104,11,10);c.fillStyle='#2a1a00';c.fillRect(-12,-102,5,5);c.fillRect(7,-102,5,5);}
+  const mh=hurt?3:Math.max(3,mouth*20);
+  c.fillStyle='#1a0000'; c.fillRect(-13,-88,26,mh);
+  if(!hurt&&mouth>0.3){c.fillStyle='#f0f0e0';c.fillRect(-11,-88,8,5);c.fillRect(-2,-88,8,5);}
+  c.scale(1/facing,1);
+  c.font='900 12px Bangers,cursive'; c.textAlign='center';
+  c.fillStyle='#ff4e6a'; c.strokeStyle='#220000'; c.lineWidth=3;
+  c.shadowColor='#ff4e6a'; c.shadowBlur=12;
+  c.strokeText('YASHAS',0,-128); c.fillText('YASHAS',0,-128); c.shadowBlur=0;
+  c.font='7px Bangers,cursive'; c.fillStyle='rgba(255,78,106,0.5)';
+  c.fillText('THE NOISEMAKER',0,-118);
+  c.restore();
+}
+
+function drawMenuChars() {
+  const pc=document.getElementById('menuPavan');
+  if(!pc) return;
+  const px2=pc.getContext('2d'); px2.clearRect(0,0,80,115);
+  const g=px2.createRadialGradient(40,75,5,40,75,36);
+  g.addColorStop(0,'rgba(62,207,255,0.14)'); g.addColorStop(1,'transparent');
+  px2.fillStyle=g; px2.fillRect(0,0,80,115);
+  drawPavanOnCtx(px2,40,108,1,'idle',0);
+
+  const yc=document.getElementById('menuYashas');
+  if(!yc) return;
+  const yx=yc.getContext('2d'); yx.clearRect(0,0,90,115);
+  const g2=yx.createRadialGradient(45,75,5,45,75,40);
+  g2.addColorStop(0,'rgba(255,78,106,0.14)'); g2.addColorStop(1,'transparent');
+  yx.fillStyle=g2; yx.fillRect(0,0,90,115);
+  drawYashasOnCtx(yx,45,108,-1,'taunt',0.7);
+}
+
+/* ── 11. BOOT ── */
+drawMenuChars();
+// Animate menu characters mouth
+setInterval(()=>{
+  const yc=document.getElementById('menuYashas');
+  if(yc&&document.getElementById('menuScreen').classList.contains('active')){
+    const yx=yc.getContext('2d'); yx.clearRect(0,0,90,115);
+    const g=yx.createRadialGradient(45,75,5,45,75,40);
+    g.addColorStop(0,'rgba(255,78,106,0.14)'); g.addColorStop(1,'transparent');
+    yx.fillStyle=g; yx.fillRect(0,0,90,115);
+    drawYashasOnCtx(yx,45,108,-1,'taunt',(Math.sin(Date.now()*0.005)+1)/2);
+  }
+}, 60);
+</script>
+</body>
+</html>

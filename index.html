@@ -2,1122 +2,1521 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Pavan Mangali: Silence Yashas</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@400;700;900&display=swap');
+/* ============================================================
+   GLOBAL RESET & FONTS
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@700;900&display=swap');
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
 :root {
-  --hero:    #3ecfff;
-  --villain: #ff4e6a;
-  --gold:    #ffe44d;
-  --mute:    #a78bfa;
-  --dark:    #07000f;
-  --ground:  #12124a;
+  --hero:    #38d9ff;
+  --villain: #ff4466;
+  --gold:    #ffd700;
+  --purple:  #b06aff;
+  --green:   #22ff88;
+  --dark:    #06040f;
+  --mid:     #0e0c20;
+  --text:    #e8eaff;
 }
 
-* { margin:0; padding:0; box-sizing:border-box; }
-
-body {
-  background: var(--dark);
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  min-height: 100vh;
-  font-family: 'Nunito', sans-serif;
-  overflow: hidden;
-  user-select: none;
+html, body {
+  width:100%; height:100%;
+  background:#000;
+  overflow:hidden;
+  touch-action:none;
+  -webkit-tap-highlight-color:transparent;
+  font-family:'Nunito',sans-serif;
 }
 
-/* ── Scrolling grid bg ── */
-body::before {
-  content: '';
-  position: fixed; inset: 0;
-  background-image:
-    linear-gradient(rgba(62,207,255,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(62,207,255,0.03) 1px, transparent 1px);
-  background-size: 50px 50px;
-  animation: gridMove 20s linear infinite;
-  pointer-events: none; z-index: 0;
-}
-@keyframes gridMove { from{background-position:0 0} to{background-position:0 50px} }
-
-/* ══════════ SCREEN SYSTEM ══════════ */
-.screen { display:none; width:100%; flex-direction:column; align-items:center; justify-content:center; }
-.screen.active { display:flex; }
-
-/* ══════════ MENU ══════════ */
-#menuScreen {
-  min-height:100vh; gap:0; position:relative; z-index:1;
-  background:radial-gradient(ellipse at 50% 25%, #200040 0%, var(--dark) 65%);
+/* ============================================================
+   CANVAS WRAPPER — full screen, centered letterbox
+   ============================================================ */
+#gameWrap {
+  position:fixed; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  background:#000;
 }
 
-.m-logo {
-  font-family:'Bangers',cursive; font-size:clamp(26px,5.5vw,50px);
-  color:var(--hero); letter-spacing:3px; text-align:center;
-  text-shadow:0 0 20px rgba(62,207,255,0.9), 4px 4px 0 #002233;
-  animation:logoBounce 2s ease-in-out infinite; margin-top:24px;
-}
-.m-logo em { font-style:normal; color:var(--villain); text-shadow:0 0 20px rgba(255,78,106,0.9), 4px 4px 0 #330011; }
-@keyframes logoBounce { 0%,100%{transform:scale(1)} 50%{transform:scale(1.025)} }
-
-.m-tag {
-  font-family:'Bangers',cursive; font-size:clamp(10px,2vw,15px);
-  color:var(--gold); letter-spacing:6px; text-shadow:0 0 8px var(--gold); margin-top:4px;
+#gameCanvas {
+  display:block;
+  /* JS will set exact pixel size & CSS scale */
+  image-rendering:pixelated;
+  image-rendering:-moz-crisp-edges;
 }
 
-.m-chars {
-  display:flex; align-items:flex-end; justify-content:center;
-  gap:clamp(30px,6vw,80px); margin:18px 0 10px; z-index:1;
-}
-.m-char { display:flex; flex-direction:column; align-items:center; gap:6px; }
-.m-char-name {
-  font-family:'Bangers',cursive; font-size:15px; letter-spacing:2px;
-}
-.m-char-name.h { color:var(--hero); text-shadow:0 0 8px var(--hero); }
-.m-char-name.v { color:var(--villain); text-shadow:0 0 8px var(--villain); }
-.m-vs {
-  font-family:'Bangers',cursive; font-size:32px; color:var(--gold);
-  text-shadow:0 0 14px var(--gold); padding-bottom:24px; align-self:center;
+/* ============================================================
+   MOBILE TOUCH CONTROLS (shown only on touch devices or small screen)
+   ============================================================ */
+#touchControls {
+  position:fixed;
+  bottom:0; left:0; right:0;
+  height:160px;
+  display:none;              /* JS shows this on touch */
+  pointer-events:none;
+  z-index:100;
+  padding:10px 16px 20px;
 }
 
-.m-diff { z-index:1; display:flex; flex-direction:column; align-items:center; gap:8px; }
-.m-diff-title { font-size:10px; letter-spacing:4px; color:rgba(255,255,255,0.4); text-transform:uppercase; }
-.m-diff-row { display:flex; gap:10px; }
-.d-btn {
-  font-family:'Bangers',cursive; font-size:14px; letter-spacing:2px;
-  padding:7px 18px; border:2px solid rgba(255,255,255,0.15);
-  background:rgba(255,255,255,0.04); color:rgba(255,255,255,0.45);
-  cursor:pointer; border-radius:6px; transition:all 0.18s;
-}
-.d-btn:hover { background:rgba(255,255,255,0.1); color:#fff; }
-.d-btn.sel { border-color:var(--gold); color:var(--gold); background:rgba(255,228,77,0.1); box-shadow:0 0 10px rgba(255,228,77,0.25); }
-
-.m-start {
-  font-family:'Bangers',cursive; font-size:clamp(16px,3.5vw,26px); letter-spacing:4px;
-  padding:13px 44px; background:linear-gradient(135deg,var(--hero),#0070ee);
-  border:none; color:#001122; cursor:pointer; border-radius:8px; z-index:1; margin:10px 0 6px;
-  box-shadow:0 5px 0 #004488, 0 0 24px rgba(62,207,255,0.45);
-  transition:all 0.15s; animation:startPulse 1.8s ease-in-out infinite;
-}
-.m-start:hover { box-shadow:0 8px 0 #004488, 0 0 36px rgba(62,207,255,0.7); }
-.m-start:active { transform:translateY(4px); box-shadow:0 1px 0 #004488; }
-@keyframes startPulse { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
-
-.m-ctrls { z-index:1; display:flex; gap:10px; flex-wrap:wrap; justify-content:center; padding:0 12px; }
-.m-ctrl {
-  font-size:9px; letter-spacing:1px; color:rgba(255,255,255,0.4);
-  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
-  padding:5px 11px; border-radius:20px;
-}
-.m-ctrl b { color:var(--hero); }
-
-/* ══════════ GAME SCREEN ══════════ */
-#gameScreen {
-  position:relative; overflow:hidden;
-  width:100vw; max-width:920px;
-  height:100vh; max-height:570px;
+/* Left side: dpad */
+#dpad {
+  position:absolute;
+  bottom:22px; left:16px;
+  display:flex; gap:6px;
+  pointer-events:all;
 }
 
-#gameCanvas { position:absolute; top:0; left:0; width:100%; height:100%; }
-
-/* ── HUD ── */
-#hud {
-  position:absolute; top:0; left:0; right:0;
-  padding:10px 14px; display:flex; justify-content:space-between;
-  pointer-events:none; z-index:10;
+.dpad-btn {
+  width:64px; height:64px;
+  border-radius:50%;
+  background:rgba(56,217,255,0.18);
+  border:2px solid rgba(56,217,255,0.45);
+  color:var(--hero);
+  font-size:26px;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+  -webkit-user-select:none; user-select:none;
+  transition:background 0.1s, transform 0.08s;
+  box-shadow:0 0 14px rgba(56,217,255,0.25);
+  backdrop-filter:blur(4px);
 }
-.hud-side { display:flex; flex-direction:column; gap:3px; min-width:155px; }
-.hud-side.r { align-items:flex-end; }
-.hud-nm { font-family:'Bangers',cursive; font-size:14px; letter-spacing:2px; }
-.hud-nm.h { color:var(--hero); text-shadow:0 0 6px var(--hero); }
-.hud-nm.v { color:var(--villain); text-shadow:0 0 6px var(--villain); }
-.hud-lbl { font-size:7px; letter-spacing:2px; color:rgba(255,255,255,0.35); text-transform:uppercase; }
-.bar-bg { width:155px; height:11px; background:rgba(0,0,0,0.55); border:1px solid rgba(255,255,255,0.18); border-radius:6px; overflow:hidden; }
-.bar-f { height:100%; border-radius:6px; transition:width 0.18s; position:relative; }
-.bar-f::after { content:''; position:absolute; top:0; left:0; right:0; height:50%; background:rgba(255,255,255,0.22); border-radius:6px 6px 0 0; }
-.bar-f.ctrl  { background:linear-gradient(90deg,var(--hero),#0080ff); }
-.bar-f.noise { background:linear-gradient(90deg,var(--villain),#ff8c00); }
-
-#waveBadge {
-  position:absolute; top:10px; left:50%; transform:translateX(-50%);
-  font-family:'Bangers',cursive; font-size:12px; letter-spacing:3px;
-  color:var(--gold); text-shadow:0 0 6px var(--gold);
-  background:rgba(0,0,0,0.45); border:1px solid rgba(255,228,77,0.3);
-  padding:3px 12px; border-radius:20px; pointer-events:none; z-index:10;
+.dpad-btn:active, .dpad-btn.pressed {
+  background:rgba(56,217,255,0.38);
+  transform:scale(0.92);
+  box-shadow:0 0 22px rgba(56,217,255,0.5);
 }
 
-#muteHud {
-  position:absolute; bottom:12px; left:50%; transform:translateX(-50%);
-  display:flex; flex-direction:column; align-items:center; gap:3px;
-  pointer-events:none; z-index:10;
+/* Right side: action buttons */
+#actionBtns {
+  position:absolute;
+  bottom:22px; right:16px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  pointer-events:all;
 }
-.mute-lbl { font-size:8px; letter-spacing:3px; color:var(--mute); text-shadow:0 0 6px var(--mute); }
-.mute-bg  { width:110px; height:5px; background:rgba(255,255,255,0.08); border-radius:3px; border:1px solid rgba(167,139,250,0.25); }
-.mute-f   { height:100%; background:var(--mute); border-radius:3px; box-shadow:0 0 6px var(--mute); transition:width 0.1s; }
 
-#pauseBtn {
-  position:absolute; bottom:12px; right:12px; z-index:10;
-  font-size:10px; padding:5px 11px; background:rgba(255,255,255,0.07);
-  border:1px solid rgba(255,255,255,0.18); color:rgba(255,255,255,0.5);
-  cursor:pointer; border-radius:6px; letter-spacing:2px;
+.action-btn {
+  width:68px; height:68px;
+  border-radius:50%;
+  border:2px solid rgba(255,255,255,0.3);
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  cursor:pointer;
+  font-size:9px; font-weight:900;
+  letter-spacing:0.5px;
+  -webkit-user-select:none; user-select:none;
+  transition:transform 0.08s, box-shadow 0.1s;
+  backdrop-filter:blur(4px);
 }
-#pauseBtn:hover { background:rgba(255,255,255,0.14); color:#fff; }
+.action-btn:active, .action-btn.pressed { transform:scale(0.88); }
+.action-btn .icon { font-size:20px; line-height:1; }
 
-/* Pause overlay */
-#pauseOv {
-  display:none; position:absolute; inset:0;
-  background:rgba(0,0,10,0.78); z-index:20;
-  flex-direction:column; align-items:center; justify-content:center; gap:16px;
-}
-#pauseOv.on { display:flex; }
-.pov-title { font-family:'Bangers',cursive; font-size:48px; color:#fff; letter-spacing:6px; text-shadow:0 0 18px var(--hero); }
-.pov-sub   { font-size:11px; letter-spacing:3px; color:rgba(255,255,255,0.35); }
-.ov-btn {
-  font-family:'Bangers',cursive; font-size:17px; letter-spacing:3px;
-  padding:10px 34px; background:rgba(255,255,255,0.08);
-  border:2px solid rgba(255,255,255,0.25); color:#fff;
-  cursor:pointer; border-radius:8px; transition:all 0.15s;
-}
-.ov-btn:hover { background:rgba(255,255,255,0.18); border-color:#fff; }
+#btnJump   { background:rgba(255,210,0,0.18); border-color:rgba(255,210,0,0.5); color:var(--gold); box-shadow:0 0 14px rgba(255,210,0,0.25); }
+#btnJump:active, #btnJump.pressed { box-shadow:0 0 22px rgba(255,210,0,0.5); }
+#btnAttack { background:rgba(56,217,255,0.18); border-color:rgba(56,217,255,0.5); color:var(--hero); box-shadow:0 0 14px rgba(56,217,255,0.25); }
+#btnAttack:active, #btnAttack.pressed { box-shadow:0 0 22px rgba(56,217,255,0.5); }
+#btnMute   { background:rgba(176,106,255,0.18); border-color:rgba(176,106,255,0.5); color:var(--purple); box-shadow:0 0 14px rgba(176,106,255,0.25); }
+#btnMute:active, #btnMute.pressed { box-shadow:0 0 22px rgba(176,106,255,0.5); }
+#btnDash   { background:rgba(34,255,136,0.18); border-color:rgba(34,255,136,0.5); color:var(--green); box-shadow:0 0 14px rgba(34,255,136,0.25); }
+#btnDash:active, #btnDash.pressed { box-shadow:0 0 22px rgba(34,255,136,0.5); }
 
-/* ══════════ RESULT SCREEN ══════════ */
-#resultScreen {
-  min-height:100vh; gap:14px; z-index:1;
-  background:radial-gradient(ellipse at 50% 40%, #001a28 0%, var(--dark) 65%);
+/* Mobile: make HUD not overlap buttons — canvas pads bottom */
+@media (max-width:768px) {
+  #touchControls { display:flex; }
 }
-#resultScreen.lose { background:radial-gradient(ellipse at 50% 40%, #200005 0%, var(--dark) 65%); }
-
-.res-title {
-  font-family:'Bangers',cursive; font-size:clamp(38px,8vw,70px);
-  letter-spacing:6px; text-align:center; text-shadow:0 0 28px currentColor;
-}
-.res-title.win  { color:var(--hero); }
-.res-title.lose { color:var(--villain); }
-.res-sub { font-size:12px; color:rgba(255,255,255,0.45); letter-spacing:4px; text-align:center; }
-
-.res-stats { display:flex; gap:18px; flex-wrap:wrap; justify-content:center; }
-.stat-c {
-  background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);
-  border-radius:10px; padding:12px 22px; text-align:center;
-}
-.stat-v { font-family:'Bangers',cursive; font-size:26px; color:var(--gold); }
-.stat-l { font-size:8px; color:rgba(255,255,255,0.35); letter-spacing:3px; margin-top:2px; }
-
-.res-btns { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
-.res-btn {
-  font-family:'Bangers',cursive; font-size:17px; letter-spacing:3px;
-  padding:11px 30px; border-radius:8px; cursor:pointer; border:none; transition:all 0.14s;
-}
-.res-btn.p { background:linear-gradient(135deg,var(--hero),#0070ee); color:#001; box-shadow:0 4px 0 #004488; }
-.res-btn.s { background:rgba(255,255,255,0.07); color:#fff; border:2px solid rgba(255,255,255,0.2); }
-.res-btn:hover { transform:translateY(-2px); }
 </style>
 </head>
 <body>
 
-<!-- ══════════ MENU SCREEN ══════════ -->
-<div id="menuScreen" class="screen active">
-  <div class="m-logo">PAVAN MANGALI<br><em>SILENCE YASHAS</em></div>
-  <div class="m-tag">THE ULTIMATE SHOWDOWN</div>
-
-  <div class="m-chars">
-    <div class="m-char">
-      <canvas id="menuPavan" width="80" height="115" style="image-rendering:pixelated"></canvas>
-      <div class="m-char-name h">PAVAN</div>
-    </div>
-    <div class="m-vs">VS</div>
-    <div class="m-char">
-      <canvas id="menuYashas" width="90" height="115" style="image-rendering:pixelated"></canvas>
-      <div class="m-char-name v">YASHAS</div>
-    </div>
-  </div>
-
-  <div class="m-diff">
-    <div class="m-diff-title">Select Difficulty</div>
-    <div class="m-diff-row">
-      <button class="d-btn"     data-d="easy"   onclick="setDiff('easy')">EASY</button>
-      <button class="d-btn sel" data-d="normal" onclick="setDiff('normal')">NORMAL</button>
-      <button class="d-btn"     data-d="hard"   onclick="setDiff('hard')">HARD</button>
-    </div>
-  </div>
-
-  <button class="m-start" onclick="startGame()">▶ START GAME</button>
-
-  <div class="m-ctrls">
-    <div class="m-ctrl"><b>← → / A D</b> Move</div>
-    <div class="m-ctrl"><b>↑ / W</b> Jump</div>
-    <div class="m-ctrl"><b>Z / J</b> Silence Strike</div>
-    <div class="m-ctrl"><b>X / K</b> Mute Mode</div>
-    <div class="m-ctrl"><b>P</b> Pause</div>
-  </div>
-</div>
-
-<!-- ══════════ GAME SCREEN ══════════ -->
-<div id="gameScreen" class="screen">
+<!-- Canvas lives here -->
+<div id="gameWrap">
   <canvas id="gameCanvas"></canvas>
-
-  <!-- HUD -->
-  <div id="hud">
-    <div class="hud-side">
-      <div class="hud-nm h">PAVAN MANGALI</div>
-      <div class="hud-lbl">Control Meter</div>
-      <div class="bar-bg"><div class="bar-f ctrl" id="ctrlBar" style="width:100%"></div></div>
-    </div>
-    <div class="hud-side r">
-      <div class="hud-nm v">YASHAS</div>
-      <div class="hud-lbl" style="text-align:right">Noise Meter</div>
-      <div class="bar-bg"><div class="bar-f noise" id="noiseBar" style="width:50%"></div></div>
-    </div>
-  </div>
-
-  <div id="waveBadge">ROUND 1</div>
-
-  <div id="muteHud">
-    <div class="mute-lbl">🔇 MUTE MODE</div>
-    <div class="mute-bg"><div class="mute-f" id="muteBar" style="width:100%"></div></div>
-  </div>
-
-  <button id="pauseBtn" onclick="togglePause()">❚❚ PAUSE</button>
-
-  <div id="pauseOv">
-    <div class="pov-title">PAUSED</div>
-    <div class="pov-sub">— breathe, pavan —</div>
-    <button class="ov-btn" onclick="togglePause()">▶ RESUME</button>
-    <button class="ov-btn" onclick="toMenu()">⌂ MENU</button>
-  </div>
 </div>
 
-<!-- ══════════ RESULT SCREEN ══════════ -->
-<div id="resultScreen" class="screen">
-  <div class="res-title" id="resTitle">SILENCED!</div>
-  <div class="res-sub"   id="resSub">YASHAS HAS BEEN SILENCED!</div>
-  <canvas id="resCanvas" width="220" height="190" style="image-rendering:pixelated;margin:6px 0"></canvas>
-  <div class="res-stats">
-    <div class="stat-c"><div class="stat-v" id="sTime">0:00</div><div class="stat-l">TIME</div></div>
-    <div class="stat-c"><div class="stat-v" id="sStrikes">0</div><div class="stat-l">STRIKES</div></div>
-    <div class="stat-c"><div class="stat-v" id="sMutes">0</div><div class="stat-l">MUTES USED</div></div>
+<!-- Mobile touch controls (only visible on touch/mobile) -->
+<div id="touchControls">
+  <!-- Left: movement -->
+  <div id="dpad">
+    <div class="dpad-btn" id="btnLeft">◀</div>
+    <div class="dpad-btn" id="btnRight">▶</div>
   </div>
-  <div class="res-btns">
-    <button class="res-btn p" onclick="startGame()">▶ PLAY AGAIN</button>
-    <button class="res-btn s" onclick="toMenu()">⌂ MENU</button>
+  <!-- Right: actions -->
+  <div id="actionBtns">
+    <div class="action-btn" id="btnJump"><span class="icon">⬆</span>JUMP</div>
+    <div class="action-btn" id="btnAttack"><span class="icon">👊</span>STRIKE</div>
+    <div class="action-btn" id="btnMute"><span class="icon">🔇</span>MUTE</div>
+    <div class="action-btn" id="btnDash"><span class="icon">💨</span>DASH</div>
   </div>
 </div>
 
 <script>
-/* ═══════════════════════════════════════════════════════
-   PAVAN MANGALI: SILENCE YASHAS — Game Engine
-   ─────────────────────────────────────────────────────
-   Sections:
-   1. Canvas & Constants
-   2. Difficulty Config
-   3. Game State
-   4. Character Objects
-   5. Particle System
-   6. Input Handler
-   7. Character Drawing (Pavan + Yashas pixel-art)
-   8. Game Logic (update)
-   9. Rendering (draw)
-   10. Screen Management
-   11. Boot
-═══════════════════════════════════════════════════════ */
+/* ================================================================
+   PAVAN MANGALI: SILENCE YASHAS
+   Complete game engine — Mobile + Desktop
+   ================================================================
+   TABLE OF CONTENTS:
+   1.  Canvas Setup & Scaling
+   2.  Game Constants & Config
+   3.  State Management
+   4.  Character Data
+   5.  Particle & Effect System
+   6.  Input System (Keyboard + Touch)
+   7.  Audio System (Web Audio API)
+   8.  Character Drawing (Pavan + Yashas)
+   9.  Background & World Drawing
+   10. HUD Drawing
+   11. Screen Drawing (Menu/GameOver/Win)
+   12. Game Logic (update)
+   13. Collision Detection
+   14. Game Loop
+   15. Boot & Resize
+   ================================================================ */
 
-/* ── 1. CANVAS & CONSTANTS ── */
-const canvas  = document.getElementById('gameCanvas');
-const ctx     = canvas.getContext('2d');
-const GW = 920, GH = 570;             // logical game size
+/* ── 1. CANVAS SETUP & SCALING ─────────────────────────────── */
+const canvas = document.getElementById('gameCanvas');
+const ctx    = canvas.getContext('2d');
+
+// Logical game resolution — fixed internal size
+const GW = 800;   // game world width
+const GH = 500;   // game world height (canvas renders to this)
 canvas.width  = GW;
 canvas.height = GH;
-const GROUND_Y = GH - 95;             // y of ground surface
-const GRAVITY  = 0.52;
 
-/* ── 2. DIFFICULTY CONFIG ── */
-const DIFFS = {
-  easy:   { noiseRate:0.007, ySpeed:1.1, bSpeed:2.4, bInterval:165, noiseDmg:3,  strikeDmg:20 },
-  normal: { noiseRate:0.014, ySpeed:1.7, bSpeed:3.4, bInterval:115, noiseDmg:6,  strikeDmg:15 },
-  hard:   { noiseRate:0.023, ySpeed:2.5, bSpeed:5.0, bInterval:72,  noiseDmg:10, strikeDmg:12 },
-};
-let diff = 'normal';
-
-function setDiff(d) {
-  diff = d;
-  document.querySelectorAll('.d-btn').forEach(b => b.classList.toggle('sel', b.dataset.d === d));
+// Fit canvas to screen while preserving aspect ratio
+function resizeCanvas() {
+  const wrap = document.getElementById('gameWrap');
+  const ww = wrap.clientWidth, wh = wrap.clientHeight;
+  const touchH = isTouchDevice ? 160 : 0;
+  const avail  = wh - touchH;
+  const scale  = Math.min(ww/GW, avail/GH);
+  canvas.style.width  = Math.floor(GW * scale) + 'px';
+  canvas.style.height = Math.floor(GH * scale) + 'px';
 }
 
-/* ── 3. GAME STATE ── */
-let running = false, paused = false, over = false;
-let noise = 50, control = 100;
-let muteCd = 0;          // ticks until mute is ready again
-const MUTE_MAX = 420;
-let muteOn = false, muteTimer = 0;
-let round = 1, ticks = 0;
-let strikes = 0, mutes = 0;
-let particles = [], bullets = [];
+const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+if (isTouchDevice) document.getElementById('touchControls').style.display = 'flex';
+window.addEventListener('resize', resizeCanvas);
 
-/* ── 4. CHARACTER OBJECTS ── */
-// Pavan — hero
-const P = {
-  x:130, y:0, vx:0, vy:0,
-  w:44, h:82, onGnd:true, facing:1,
-  state:'idle',        // idle | walk | jump | strike | mute
-  strikeT:0,           // ticks remaining in strike animation
-  bobT:0, bob:0,
-  speed:4.6, jump:-13.5,
+/* ── 2. GAME CONSTANTS ─────────────────────────────────────── */
+const GROUND   = GH - 90;   // y position of ground surface
+const GRAVITY  = 0.50;
+const FPS      = 60;
+
+// Difficulty scaling per level
+const LEVELS = [
+  { noiseRate:0.010, ySpeed:1.4, bInterval:130, bSpeed:3.0, noiseDmg:5,  strikeDmg:14, label:'LEVEL 1' },
+  { noiseRate:0.016, ySpeed:1.8, bInterval:100, bSpeed:3.8, noiseDmg:7,  strikeDmg:12, label:'LEVEL 2' },
+  { noiseRate:0.022, ySpeed:2.3, bInterval:78,  bSpeed:4.8, noiseDmg:9,  strikeDmg:10, label:'LEVEL 3' },
+  { noiseRate:0.030, ySpeed:2.9, bInterval:58,  bSpeed:6.0, noiseDmg:12, strikeDmg:8,  label:'BOSS!!'  },
+];
+
+// Yashas funny dialogues
+const YASHAS_LINES = [
+  'BLA BLA BLA!', 'I LOVE NOISE!!', 'LISTEN TO ME!!',
+  'TALK TALK TALK!', 'YOU CAN\'T STOP ME!', 'BLAH BLAH!!',
+  'SO LOUD, SO PROUD!', 'VOLUME MAX!!', 'YAKKETY YAK!!',
+  'NOISE IS MY POWER!', 'CAN YOU HEAR ME?!', 'MAXIMUM VOLUME!!'
+];
+
+/* ── 3. STATE MANAGEMENT ───────────────────────────────────── */
+// gameState: 'menu' | 'playing' | 'paused' | 'gameover' | 'win' | 'levelup'
+let gameState = 'menu';
+let level = 0;            // current level index
+let ticks = 0;            // frame counter
+let score = 0;
+let combo = 0;            // consecutive hits
+let comboTimer = 0;
+let slowMotion = false;   // slow-mo during mute
+let slowMotionT = 0;
+let screenShakeX = 0, screenShakeY = 0, screenShakeDecay = 0;
+let levelUpTimer = 0;
+let lastTime = 0;
+
+/* Player stats */
+let health   = 100;       // Pavan health (0-100)
+let noise    = 40;        // Yashas noise meter (0-100) – win at 0, lose at 100
+let muteCD   = 0;         // mute cooldown ticks
+let dashCD   = 0;         // dash cooldown
+const MUTE_CD_MAX = 360;
+const DASH_CD_MAX = 120;
+
+/* ── 4. CHARACTER DATA ─────────────────────────────────────── */
+const P = {  // Pavan Mangali
+  x:120, y:GROUND, vx:0, vy:0,
+  w:42, h:80,
+  onGround:true, facing:1,
+  state:'idle',     // idle|walk|jump|strike|dash|mute
+  strikeT:0,        // frames remaining in strike animation
+  dashT:0,          // dash frames
+  muteActive:false, muteDuration:0,
+  invincible:0,     // iframes after getting hit
+  bobT:0,           // walking bob timer
+  attackRange:180,  // px range for strike to connect
+  speed:4.2,
+  jumpForce:-12.5,
+  dashSpeed:14,
 };
 
-// Yashas — villain
-const Y = {
-  x:700, y:0, vx:0, vy:0,
-  w:52, h:90, onGnd:true, facing:-1,
-  state:'taunt',
+const Y = {  // Yashas
+  x:560, y:GROUND, vx:0, vy:0,
+  w:50, h:88,
+  onGround:true, facing:-1,
+  state:'taunt',    // taunt|walk|shout|hurt|burst
   stateT:80,
-  bulletT:0,
-  mouthT:0, mouthVal:0,  // 0-1 animated mouth open
-  blaT:0,                // next BLA text timer
-  shakeX:0,
+  bulletTimer:0,
+  burstTimer:0,     // noise burst attack
+  blaTimer:0,       // BLA BLA text spam timer
+  mouthT:0, mouthOpen:0,
+  shakeX:0,         // hit shake
+  dialogTimer:0,
+  currentDialog:'BLA BLA!',
 };
 
-/* ── 5. PARTICLE SYSTEM ── */
-// types: spark | text | ring | wave | mute
-function mkParticle(o) { particles.push(o); }
+/* Projectiles */
+let bullets = [];    // Yashas sound bullets
+let blaTexts = [];   // BLA floating text
 
-function blaText(x, y) {
-  const words = ['BLA!','BLAH!','YAK!','BLEH!','NOISE!','HEY!','LOUD!','AHHH!','!!!'];
-  const cols  = ['#ff4e6a','#ff8c00','#ffe44d','#ff6688'];
-  mkParticle({
-    type:'text', x: x+(Math.random()-0.5)*70, y,
-    vx:(Math.random()-0.5)*1.5, vy:-2.8-Math.random()*1.2,
-    life:1, text:words[Math.floor(Math.random()*words.length)],
-    col:cols[Math.floor(Math.random()*cols.length)],
-    sz: 13+Math.floor(Math.random()*13),
-  });
+/* ── 5. PARTICLE & EFFECT SYSTEM ──────────────────────────── */
+let particles = [];
+let floatingTexts = [];
+
+/**
+ * Add a particle to the pool
+ * types: spark | ring | wave | bla | number | text
+ */
+function addFX(opts) { particles.push({ life:1, ...opts }); }
+
+function addFloat(x, y, text, col, size) {
+  floatingTexts.push({ x, y, text, col:col||'#fff', size:size||18, life:1, vy:-1.8-Math.random() });
 }
 
+function triggerShake(power) {
+  screenShakeX = (Math.random()-0.5)*power*2;
+  screenShakeY = (Math.random()-0.5)*power;
+  screenShakeDecay = power * 1.5;
+}
+
+/* Create silence sparks when Pavan strikes */
 function silenceSparks(x, y) {
-  for (let i=0; i<20; i++) {
-    const a = (i/20)*Math.PI*2, s = 3+Math.random()*4.5;
-    const cols = ['#3ecfff','#a78bfa','#ffffff','#00ffcc'];
-    mkParticle({ type:'spark', x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s,
-      life:1, r:2+Math.random()*3.5, col:cols[i%cols.length] });
+  for (let i=0; i<24; i++) {
+    const a = (i/24)*Math.PI*2, s = 3.5+Math.random()*5;
+    const cols = ['#38d9ff','#b06aff','#ffffff','#00ffcc','#aaeeff'];
+    addFX({ type:'spark', x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s,
+      life:1, r:2.5+Math.random()*3.5, col:cols[i%cols.length] });
   }
-  mkParticle({ type:'ring', x, y, r:5, maxR:120, life:1, col:'#3ecfff' });
+  addFX({ type:'ring', x, y, r:10, maxR:140, life:1, col:'#38d9ff' });
+  addFX({ type:'ring', x, y, r:10, maxR:80, life:1, col:'#ffffff', delay:8 });
 }
 
-function muteAura(x, y) {
-  for (let i=0; i<32; i++) {
-    const a=(i/32)*Math.PI*2, s=6+Math.random()*6;
-    mkParticle({ type:'mute', x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s,
-      life:1, r:4+Math.random()*6, col:'#a78bfa' });
+/* Mute mode explosion aura */
+function muteExplosion(x, y) {
+  for (let i=0; i<36; i++) {
+    const a=(i/36)*Math.PI*2, s=5+Math.random()*7;
+    addFX({ type:'spark', x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s,
+      life:1, r:3+Math.random()*5, col:i%2===0?'#b06aff':'#e0aaff' });
   }
-  mkParticle({ type:'ring', x, y, r:5, maxR:200, life:1, col:'#a78bfa' });
+  addFX({ type:'ring', x, y, r:10, maxR:220, life:1, col:'#b06aff' });
+  addFX({ type:'ring', x, y, r:10, maxR:140, life:1, col:'#ffffff' });
+  triggerShake(12);
 }
 
-function hitFlash(x, y) {
-  for (let i=0; i<12; i++) {
-    mkParticle({ type:'spark', x, y:y-20+(Math.random()-0.5)*50,
-      vx:(Math.random()-0.5)*6, vy:-4-Math.random()*3,
-      life:1, r:4, col:'#ffffff' });
+/* Hit flash on Yashas */
+function hitBurst(x, y) {
+  for (let i=0; i<14; i++) {
+    addFX({ type:'spark', x, y:y-20+(Math.random()-0.5)*50,
+      vx:(Math.random()-0.5)*6, vy:-3.5-Math.random()*3,
+      life:1, r:3.5, col:'#ffffff' });
   }
-  mkParticle({ type:'text', x, y:y-55, vx:0, vy:-2.2,
-    life:1, text:'SILENCED!', col:'#3ecfff', sz:20 });
+  addFX({ type:'ring', x, y, r:8, maxR:60, life:1, col:'#ff4466' });
 }
 
-/* ── 6. INPUT ── */
+/* Dash trail */
+function dashTrail(x, y) {
+  addFX({ type:'spark', x, y:y-P.h/2, vx:-P.facing*2, vy:0,
+    life:0.7, r:12, col:'rgba(34,255,136,0.4)' });
+}
+
+/* ── 6. INPUT SYSTEM ───────────────────────────────────────── */
 const keys = {};
+
+// Keyboard
 document.addEventListener('keydown', e => {
-  if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space'].includes(e.code)) e.preventDefault();
-  keys[e.code] = true;
-  if (!running || paused) return;
-  if (e.code==='ArrowUp'||e.code==='KeyW') doJump();
-  if (e.code==='KeyZ'||e.code==='KeyJ')    doStrike();
-  if (e.code==='KeyX'||e.code==='KeyK')    doMute();
-  if (e.code==='KeyP')                     togglePause();
+  const c = e.code;
+  keys[c] = true;
+  if (['Space','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(c)) e.preventDefault();
+  if (gameState === 'menu') { startGame(); return; }
+  if (gameState === 'gameover' || gameState === 'win') { if(c==='Space'||c==='Enter') resetToMenu(); return; }
+  if (c === 'KeyP' || c === 'Escape') togglePause();
+  if (gameState !== 'playing') return;
+  if (c==='Space'||c==='ArrowUp'||c==='KeyW') doJump();
+  if (c==='KeyF'||c==='KeyZ') doStrike();
+  if (c==='KeyM'||c==='KeyX') doMute();
+  if (c==='KeyD'||c==='ShiftLeft') doDash();
 });
 document.addEventListener('keyup', e => { keys[e.code] = false; });
 
+// Touch button helpers
+function setupTouchBtn(id, downFn, upFn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const press = e => { e.preventDefault(); el.classList.add('pressed'); if(downFn) downFn(); };
+  const release = e => { e.preventDefault(); el.classList.remove('pressed'); if(upFn) upFn(); };
+  el.addEventListener('touchstart', press, {passive:false});
+  el.addEventListener('touchend', release, {passive:false});
+  el.addEventListener('touchcancel', release, {passive:false});
+  el.addEventListener('mousedown', press);
+  el.addEventListener('mouseup', release);
+}
+
+setupTouchBtn('btnLeft',  () => { keys['ArrowLeft']=true;  }, () => { keys['ArrowLeft']=false; });
+setupTouchBtn('btnRight', () => { keys['ArrowRight']=true; }, () => { keys['ArrowRight']=false; });
+setupTouchBtn('btnJump',  () => { if(gameState==='playing') doJump(); });
+setupTouchBtn('btnAttack',() => { if(gameState==='playing') doStrike(); });
+setupTouchBtn('btnMute',  () => { if(gameState==='playing') doMute(); });
+setupTouchBtn('btnDash',  () => { if(gameState==='playing') doDash(); });
+
+// Tap canvas to start/restart
+canvas.addEventListener('click', () => {
+  if (gameState==='menu') startGame();
+  else if (gameState==='gameover'||gameState==='win') resetToMenu();
+});
+
+/* ── 7. AUDIO SYSTEM ─────────────────────────────────────────
+   Uses Web Audio API — no external files needed
+   ─────────────────────────────────────────────────────────── */
+let AudioCtx = null;
+
+function getAudio() {
+  if (!AudioCtx) AudioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  return AudioCtx;
+}
+
+function playTone(freq, type, duration, vol, bend) {
+  try {
+    const ac = getAudio();
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.connect(gain); gain.connect(ac.destination);
+    osc.type = type||'square';
+    osc.frequency.setValueAtTime(freq, ac.currentTime);
+    if (bend) osc.frequency.exponentialRampToValueAtTime(bend, ac.currentTime+duration);
+    gain.gain.setValueAtTime((vol||0.3)*0.4, ac.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+duration);
+    osc.start(ac.currentTime);
+    osc.stop(ac.currentTime+duration);
+  } catch(e) {}
+}
+
+function sndStrike()  { playTone(320,'sawtooth',0.12,0.6,80); playTone(600,'square',0.08,0.3); }
+function sndHit()     { playTone(180,'square',0.18,0.5,80); }
+function sndMute()    { playTone(440,'sine',0.4,0.8,880); playTone(220,'triangle',0.4,0.4,880); }
+function sndJump()    { playTone(300,'sine',0.15,0.4,600); }
+function sndDash()    { playTone(500,'sawtooth',0.1,0.4,900); }
+function sndBla()     { playTone(220,'square',0.08,0.2,120); }
+function sndLevelUp() { [440,550,660,880].forEach((f,i)=>setTimeout(()=>playTone(f,'sine',0.2,0.5),i*80)); }
+function sndWin()     { [523,659,784,1047].forEach((f,i)=>setTimeout(()=>playTone(f,'sine',0.3,0.6),i*120)); }
+function sndLose()    { [440,330,220,165].forEach((f,i)=>setTimeout(()=>playTone(f,'sine',0.3,0.5),i*120)); }
+
+/* ── 8. GAME ACTIONS ──────────────────────────────────────── */
 function doJump() {
-  if (P.onGnd) { P.vy = P.jump; P.onGnd = false; P.state='jump'; }
+  if (!P.onGround) return;
+  P.vy = P.jumpForce; P.onGround = false; P.state='jump';
+  sndJump();
+  addFX({ type:'ring', x:P.x+P.w/2, y:P.y+P.h, r:5, maxR:45, life:1, col:'#38d9ff' });
 }
 
 function doStrike() {
-  if (P.strikeT > 0 || muteOn) return;
-  P.strikeT = 28; P.state = 'strike'; strikes++;
-  // Check range
-  const dx = Math.abs(P.x - Y.x), dy = Math.abs(P.y - Y.y);
-  if (dx < 220 && dy < 110) {
-    const D = DIFFS[diff];
-    noise = Math.max(0, noise - D.strikeDmg);
-    Y.state = 'hurt'; Y.stateT = 30; Y.shakeX = 8;
-    silenceSparks(Y.x + Y.w/2, Y.y + 35);
-    hitFlash(Y.x + Y.w/2, Y.y);
-    if (noise <= 0) win();
+  if (P.strikeT > 0) return;
+  P.strikeT = 26; P.state='strike'; score += 1;
+  combo++; comboTimer = 90;
+  sndStrike();
+  const fx = P.x + (P.facing>0 ? P.w+20 : -20);
+  const fy = P.y + 22;
+  silenceSparks(fx, fy);
+  // Check if Yashas is in range
+  const dx = Math.abs((P.x + P.w/2) - (Y.x + Y.w/2));
+  const dy = Math.abs((P.y + P.h/2) - (Y.y + Y.h/2));
+  if (dx < P.attackRange && dy < 100) {
+    const dmg = LEVELS[level].strikeDmg * (1 + (combo>4?0.5:combo>2?0.25:0));
+    noise = Math.max(0, noise - dmg);
+    Y.state = 'hurt'; Y.stateT = 28; Y.shakeX = 9;
+    hitBurst(Y.x+Y.w/2, Y.y+30);
+    triggerShake(combo > 3 ? 7 : 4);
+    addFloat(Y.x+Y.w/2, Y.y-10, combo>4?'COMBO x'+combo+'!!':'HIT!', combo>4?'#ffd700':'#38d9ff', combo>4?24:18);
+    sndHit();
+    if (noise <= 0) { noise=0; triggerWin(); }
   } else {
-    silenceSparks(P.x + (P.facing>0 ? P.w+30 : -30), P.y + 22);
+    addFloat(P.x + (P.facing>0?P.w+30:-50), P.y, 'MISS', '#888', 14);
+    combo = 0;
   }
 }
 
 function doMute() {
-  if (muteCd > 0 || muteOn) return;
-  muteOn = true; muteTimer = 200; muteCd = MUTE_MAX; mutes++;
-  muteAura(P.x + P.w/2, P.y + P.h/2);
-  noise = Math.max(0, noise - 22);
-  if (noise <= 0) win();
+  if (muteCD > 0) return;
+  P.muteActive = true; P.muteDuration = 180; P.state='mute';
+  muteCD = MUTE_CD_MAX;
+  slowMotion = true; slowMotionT = 60;
+  muteExplosion(P.x+P.w/2, P.y+P.h/2);
+  sndMute();
+  // Drain noise rapidly
+  noise = Math.max(0, noise - 28);
+  addFloat(GW/2, GH/2-40, '🔇 MUTE MODE!', '#b06aff', 28);
+  if (noise <= 0) { noise=0; triggerWin(); }
 }
 
-/* ── 7a. DRAW PAVAN ── */
-/**
- * Draw Pavan Mangali — serious, focused anime hero
- * x,y = center-bottom foot position
- * facing = 1 (right) or -1 (left)
- * state = idle|walk|jump|strike|mute
- * st = strikeTimer (remaining frames)
- */
-function drawPavan(x, y, facing, state, st) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.scale(facing, 1);
-  ctx.imageSmoothingEnabled = false;
+function doDash() {
+  if (dashCD > 0) return;
+  dashCD = DASH_CD_MAX; P.dashT = 14;
+  P.state = 'dash'; P.invincible = 20;
+  sndDash();
+}
 
-  // Walk bob
-  const wb = (state==='walk') ? Math.sin(ticks*0.28)*3.5 : 0;
-  const jb = (state==='jump') ? -6 : wb;
-  ctx.translate(0, jb);
+/* ── CHARACTER DRAWING ─────────────────────────────────────── */
+
+/**
+ * drawPavan — Anime-style serious focused hero
+ * @param {number} px  center-x
+ * @param {number} py  bottom-y (feet)
+ * @param {number} facing  1=right, -1=left
+ * @param {string} state
+ * @param {number} strikeT  frames left in strike
+ * @param {boolean} muteActive
+ * @param {number} invincible  iframes remaining
+ */
+function drawPavan(px, py, facing, state, strikeT, muteActive, invincible) {
+  ctx.save();
+  ctx.translate(px, py);
+  ctx.scale(facing, 1);
+  if (invincible > 0 && Math.floor(ticks/4)%2===0) ctx.globalAlpha = 0.35;
+
+  // Walking bob
+  const wb = (state==='walk') ? Math.sin(ticks*0.30)*3.8 : 0;
+  const jOff = (state==='jump') ? -5 : wb;
+  ctx.translate(0, jOff);
 
   // ── LEGS ──
-  const ls = (state==='walk') ? Math.sin(ticks*0.28)*12 : 0;
+  const ls = (state==='walk') ? Math.sin(ticks*0.30)*14 : 0;
+
   // Back leg
-  ctx.save(); ctx.translate(-12, -22); ctx.rotate((ls)*Math.PI/180);
-  ctx.fillStyle='#162040'; ctx.fillRect(-5,0,11,30);
-  ctx.fillStyle='#0a1428'; ctx.fillRect(-6,24,13,7); // boot
-  ctx.fillStyle='#304060'; ctx.fillRect(-5,0,11,3);  // band
-  ctx.restore();
-  // Front leg
-  ctx.save(); ctx.translate(12, -22); ctx.rotate((-ls)*Math.PI/180);
-  ctx.fillStyle='#1e2e50'; ctx.fillRect(-6,0,12,30);
-  ctx.fillStyle='#0a1428'; ctx.fillRect(-7,24,14,7);
-  ctx.fillStyle='#3a4a70'; ctx.fillRect(-6,0,12,3);
+  ctx.save(); ctx.translate(-12,-24); ctx.rotate(ls*Math.PI/180);
+  ctx.fillStyle='#152038'; ctx.fillRect(-5,0,11,28);
+  ctx.fillStyle='#091420'; ctx.fillRect(-6,22,13,7); // boot
+  ctx.fillStyle='#2a3a58'; ctx.fillRect(-5,0,11,3);  // pant stripe
   ctx.restore();
 
-  // ── BODY ──
-  ctx.fillStyle = '#0d2448';
-  ctx.fillRect(-17,-78,34,58);
-  // Jacket stripes (hero)
-  ctx.fillStyle = '#3ecfff';
-  ctx.fillRect(-17,-78,3,58);   // left
-  ctx.fillRect(14,-78,3,58);    // right
-  ctx.fillRect(-17,-78,34,3);   // top collar
-  // Chest emblem
-  ctx.fillStyle='#3ecfff'; ctx.shadowColor='#3ecfff'; ctx.shadowBlur=8;
+  // Front leg
+  ctx.save(); ctx.translate(12,-24); ctx.rotate(-ls*Math.PI/180);
+  ctx.fillStyle='#1c2d4a'; ctx.fillRect(-6,0,12,28);
+  ctx.fillStyle='#091420'; ctx.fillRect(-7,22,14,7);
+  ctx.fillStyle='#3a4a6a'; ctx.fillRect(-6,0,12,3);
+  ctx.restore();
+
+  // ── BODY — dark hero jacket ──
+  ctx.fillStyle = muteActive ? '#1a0040' : '#0c2244';
+  ctx.fillRect(-17,-78,34,54);
+
+  // Jacket glow stripe
+  ctx.fillStyle = muteActive ? '#b06aff' : '#38d9ff';
+  if (muteActive) { ctx.shadowColor='#b06aff'; ctx.shadowBlur=14; }
+  ctx.fillRect(-17,-78,3,54);  // left trim
+  ctx.fillRect(14,-78,3,54);   // right trim
+  ctx.fillRect(-17,-78,34,3);  // collar
+  ctx.shadowBlur=0;
+
+  // Belt
+  ctx.fillStyle='#091420'; ctx.fillRect(-17,-26,34,6);
+  ctx.fillStyle = muteActive ? '#b06aff' : '#38d9ff';
+  ctx.fillRect(-4,-26,8,6);
+
+  // Chest emblem — glowing circle
+  ctx.fillStyle = muteActive ? '#b06aff' : '#38d9ff';
+  ctx.shadowColor = muteActive ? '#b06aff' : '#38d9ff'; ctx.shadowBlur=10;
   ctx.beginPath(); ctx.arc(0,-52,6,0,Math.PI*2); ctx.fill();
   ctx.shadowBlur=0;
-  ctx.fillStyle='#001122';
+  ctx.fillStyle='#000d22';
   ctx.beginPath(); ctx.arc(0,-52,3,0,Math.PI*2); ctx.fill();
-  // Belt
-  ctx.fillStyle='#0a1830'; ctx.fillRect(-17,-22,34,6);
-  ctx.fillStyle='#3ecfff'; ctx.fillRect(-5,-22,10,6);
 
   // ── ARMS ──
-  const strikeArm = st > 0;
-  // Left arm
-  ctx.fillStyle='#0d2448'; ctx.fillRect(-28,-76,13,36);
-  ctx.fillStyle='#c8844a'; ctx.fillRect(-28,-41,12,11); // hand
+  const strikeArm = strikeT > 0;
+  const dashArm   = state === 'dash';
 
-  // Right arm — punching if striking
+  // Left arm
+  ctx.fillStyle='#0c2244'; ctx.fillRect(-28,-76,13,34);
+  ctx.fillStyle='#c07840'; ctx.fillRect(-28,-44,12,10); // hand
+
+  // Right arm (punch extension or normal)
   if (strikeArm) {
-    ctx.save();
-    ctx.translate(17,-74); ctx.rotate(-28*Math.PI/180);
-    ctx.fillStyle='#0d2448'; ctx.fillRect(0,0,14,40);
-    // glowing fist
-    ctx.fillStyle='#3ecfff'; ctx.shadowColor='#3ecfff'; ctx.shadowBlur=18;
-    ctx.fillRect(0,30,18,14); ctx.shadowBlur=0;
+    ctx.save(); ctx.translate(17,-74); ctx.rotate(-32*Math.PI/180);
+    ctx.fillStyle='#0c2244'; ctx.fillRect(0,0,13,40);
+    // Glowing fist
+    ctx.fillStyle = muteActive ? '#b06aff' : '#38d9ff';
+    ctx.shadowColor = muteActive ? '#b06aff' : '#38d9ff'; ctx.shadowBlur=20;
+    ctx.fillRect(0,28,18,14);
+    ctx.shadowBlur=0;
+    ctx.restore();
+  } else if (dashArm) {
+    ctx.save(); ctx.translate(17,-74); ctx.rotate(20*Math.PI/180);
+    ctx.fillStyle='#0c2244'; ctx.fillRect(0,0,13,30);
+    ctx.fillStyle='#c07840'; ctx.fillRect(0,24,12,10);
     ctx.restore();
   } else {
-    ctx.fillStyle='#0d2448'; ctx.fillRect(15,-76,13,36);
-    ctx.fillStyle='#c8844a'; ctx.fillRect(17,-41,12,11);
+    ctx.fillStyle='#0c2244'; ctx.fillRect(15,-76,13,34);
+    ctx.fillStyle='#c07840'; ctx.fillRect(17,-44,12,10);
   }
 
   // ── NECK ──
-  ctx.fillStyle='#c8844a'; ctx.fillRect(-5,-84,10,8);
+  ctx.fillStyle='#c07840'; ctx.fillRect(-5,-82,10,6);
 
   // ── HEAD ──
-  ctx.fillStyle='#c8844a'; ctx.fillRect(-15,-122,30,38);
-  ctx.fillStyle='#a06838'; ctx.fillRect(-15,-92,30,8); // jaw shadow
+  ctx.fillStyle='#c07840'; ctx.fillRect(-15,-120,30,38);
+  ctx.fillStyle='#a06030'; ctx.fillRect(-15,-88,30,8); // jaw shadow
 
   // ── HAIR — dark spiky anime ──
-  ctx.fillStyle='#0a0a12';
-  ctx.fillRect(-17,-130,34,14);      // base
-  ctx.fillRect(-21,-124,9,8);        // left spike
-  ctx.fillRect(12,-126,9,12);        // right spike
-  ctx.fillRect(-4,-136,8,10);        // top center
-  ctx.fillRect(-13,-132,7,8);        // left mid
-  ctx.fillRect(6,-130,8,8);          // right mid
-  ctx.fillStyle='#1e1e2a';           // shine
-  ctx.fillRect(-8,-130,4,12);
+  ctx.fillStyle='#0a0a10';
+  ctx.fillRect(-17,-128,34,14);       // base band
+  ctx.fillRect(-21,-122,9,8);         // left spike
+  ctx.fillRect(12,-124,9,12);         // right spike
+  ctx.fillRect(-4,-134,8,10);         // center top spike
+  ctx.fillRect(-13,-130,7,8);         // left-mid spike
+  ctx.fillRect(6,-128,8,8);           // right-mid spike
+  ctx.fillStyle='#1e1e28';
+  ctx.fillRect(-8,-128,4,12);         // gloss streak
 
-  // ── EYES — sharp, determined ──
+  // ── EYES — sharp determined anime eyes ──
   ctx.fillStyle='#fff';
-  ctx.fillRect(-12,-112,9,8); ctx.fillRect(3,-112,9,8);
-  ctx.fillStyle='#3ecfff';
-  ctx.fillRect(-9,-110,5,5);  ctx.fillRect(5,-110,5,5);
+  ctx.fillRect(-12,-110,9,8); ctx.fillRect(3,-110,9,8);
+  ctx.fillStyle = muteActive ? '#b06aff' : '#38d9ff';
+  ctx.fillRect(-9,-108,5,5); ctx.fillRect(5,-108,5,5);
   ctx.fillStyle='#000';
-  ctx.fillRect(-8,-109,3,3);  ctx.fillRect(6,-109,3,3);
-  ctx.fillStyle='#fff';       // glint
-  ctx.fillRect(-7,-110,1,1);  ctx.fillRect(7,-110,1,1);
-  // Eyebrows — stern
-  ctx.fillStyle='#0a0a12';
-  ctx.fillRect(-13,-115,10,3); ctx.fillRect(3,-115,10,3);
-  ctx.fillRect(-13,-117,4,2);  ctx.fillRect(9,-117,4,2); // angled inner
+  ctx.fillRect(-8,-107,3,3); ctx.fillRect(6,-107,3,3);
+  ctx.fillStyle='#fff'; // glints
+  ctx.fillRect(-7,-108,1,1); ctx.fillRect(7,-108,1,1);
+  // Eyebrows — stern angled
+  ctx.fillStyle='#0a0a10';
+  ctx.fillRect(-13,-113,10,3); ctx.fillRect(3,-113,10,3);
+  ctx.fillRect(-13,-115,4,2); ctx.fillRect(9,-115,4,2);
 
-  // ── MOUTH — tight, focused ──
-  ctx.fillStyle='#7a4428'; ctx.fillRect(-5,-100,10,3);
+  // ── MOUTH — tight serious ──
+  ctx.fillStyle='#7a4020'; ctx.fillRect(-5,-98,10,3);
 
-  // ── NAME BELOW CHARACTER ──
-  ctx.scale(1/facing, 1); // un-flip text
-  ctx.font = '900 12px Bangers,cursive';
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#3ecfff'; ctx.strokeStyle='#001122'; ctx.lineWidth=3;
-  ctx.shadowColor='#3ecfff'; ctx.shadowBlur=8;
-  ctx.strokeText('PAVAN', 0, 22);  // below feet
-  ctx.fillText('PAVAN', 0, 22);
-  ctx.shadowBlur=0;
-
-  // Strike flash overlay
-  if (strikeArm) {
-    ctx.scale(facing, 1);
-    ctx.fillStyle='rgba(62,207,255,0.18)';
-    ctx.fillRect(-22,-138,44,130);
+  // Mute aura rings around Pavan
+  if (muteActive) {
+    ctx.strokeStyle='rgba(176,106,255,0.4)'; ctx.lineWidth=2;
+    const pr = 50+12*Math.sin(ticks*0.15);
+    ctx.beginPath(); ctx.arc(0,-50,pr,0,Math.PI*2); ctx.stroke();
+    const pr2 = 70+8*Math.sin(ticks*0.15+1);
+    ctx.strokeStyle='rgba(176,106,255,0.2)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.arc(0,-50,pr2,0,Math.PI*2); ctx.stroke();
   }
+
+  // Dash afterimage
+  if (state==='dash') {
+    ctx.fillStyle='rgba(34,255,136,0.18)';
+    ctx.fillRect(-20,-128,40,130);
+  }
+
+  // ── NAME LABEL (below feet) ──
+  ctx.scale(1/facing,1); // un-flip text
+  ctx.font='900 10px Bangers,cursive';
+  ctx.textAlign='center';
+  ctx.fillStyle='#38d9ff'; ctx.strokeStyle='#000d22'; ctx.lineWidth=3;
+  ctx.shadowColor='#38d9ff'; ctx.shadowBlur=8;
+  ctx.strokeText('PAVAN', 0, 20);
+  ctx.fillText('PAVAN', 0, 20);
+  ctx.shadowBlur=0;
 
   ctx.restore();
 }
 
-/* ── 7b. DRAW YASHAS ── */
 /**
- * Draw Yashas — loud, exaggerated anime villain
- * mouth = 0-1 open amount
+ * drawYashas — Loud anime villain with exaggerated expressions
  */
-function drawYashas(x, y, facing, state, mouth) {
+function drawYashas(yx, yy, facing, state, mouthOpen, shakeX) {
   ctx.save();
-  ctx.translate(x + (Y.shakeX||0), y);
+  ctx.translate(yx + shakeX, yy);
   ctx.scale(facing, 1);
-  ctx.imageSmoothingEnabled = false;
 
-  const hurt  = state==='hurt';
-  const shout = state==='shout';
-  const ls    = (state==='walk') ? Math.sin(ticks*0.22)*12 : 0;
+  const hurt  = state === 'hurt';
+  const shout = state === 'shout';
+  const burst = state === 'burst';
+
+  // Walking animation
+  const ls = (state==='walk') ? Math.sin(ticks*0.22)*13 : 0;
 
   // ── LEGS ──
   ctx.save(); ctx.translate(-12,-26); ctx.rotate(ls*Math.PI/180);
-  ctx.fillStyle='#5a2808'; ctx.fillRect(-6,0,12,28);
-  ctx.fillStyle='#3a1604'; ctx.fillRect(-7,22,14,7);
+  ctx.fillStyle='#5a2006'; ctx.fillRect(-6,0,12,26);
+  ctx.fillStyle='#3a1204'; ctx.fillRect(-7,20,14,7);
   ctx.restore();
   ctx.save(); ctx.translate(12,-26); ctx.rotate(-ls*Math.PI/180);
-  ctx.fillStyle='#6a3010'; ctx.fillRect(-6,0,12,28);
-  ctx.fillStyle='#3a1604'; ctx.fillRect(-7,22,14,7);
+  ctx.fillStyle='#6e2a0a'; ctx.fillRect(-6,0,12,26);
+  ctx.fillStyle='#3a1204'; ctx.fillRect(-7,20,14,7);
   ctx.restore();
 
-  // ── BODY — orange-red loud hoodie ──
-  ctx.fillStyle = hurt ? '#5a1400' : '#c83800';
+  // ── BODY — loud orange-red hoodie ──
+  ctx.fillStyle = hurt ? '#5a1000' : burst ? '#ff6600' : '#c43200';
   ctx.fillRect(-20,-84,40,58);
+
   // Hoodie pocket
-  ctx.fillStyle = hurt ? '#4a1000' : '#a82800';
+  ctx.fillStyle = hurt ? '#480c00' : '#a42800';
   ctx.fillRect(-12,-48,24,20); ctx.fillRect(-12,-48,24,3);
-  // Noise lines
+
+  // Noise lines on chest (not when hurt)
   if (!hurt) {
-    ctx.strokeStyle='#ff5500'; ctx.lineWidth=2;
+    ctx.strokeStyle = burst ? '#ffaa00' : '#ff5500';
+    ctx.lineWidth = 2;
     for (let i=0;i<3;i++) {
+      const off = Math.sin(ticks*0.2+i)*2;
       ctx.beginPath();
-      ctx.moveTo(-14+i*14,-79); ctx.lineTo(-14+i*14+4,-30); ctx.stroke();
+      ctx.moveTo(-14+i*14,-79+off); ctx.lineTo(-14+i*14+4,-30+off); ctx.stroke();
     }
   }
 
-  // ── ARMS — flailing / gesturing ──
-  const aw = shout ? Math.sin(ticks*0.3)*20 : (hurt?28:6);
-  ctx.fillStyle = hurt ? '#5a1400' : '#c83800';
+  // ── ARMS — flailing expressively ──
+  const aw = shout || burst ? Math.sin(ticks*0.3)*24 : hurt ? 30 : Math.sin(ticks*0.1)*8;
+  ctx.fillStyle = hurt ? '#5a1000' : '#c43200';
   ctx.save(); ctx.translate(-20,-80); ctx.rotate(-aw*Math.PI/180);
-  ctx.fillRect(-11,0,13,38);
-  ctx.fillStyle='#d0784a'; ctx.fillRect(-11,28,13,12); ctx.restore();
+  ctx.fillRect(-11,0,13,36); ctx.fillStyle='#d07040'; ctx.fillRect(-11,28,13,11);
+  ctx.restore();
   ctx.save(); ctx.translate(20,-80); ctx.rotate(aw*Math.PI/180);
-  ctx.fillRect(-2,0,13,38);
-  ctx.fillStyle='#d0784a'; ctx.fillRect(-2,28,13,12); ctx.restore();
+  ctx.fillRect(-2,0,13,36); ctx.fillStyle='#d07040'; ctx.fillRect(-2,28,13,11);
+  ctx.restore();
 
   // ── NECK ──
-  ctx.fillStyle='#d0784a'; ctx.fillRect(-6,-92,12,10);
+  ctx.fillStyle='#d07040'; ctx.fillRect(-6,-92,12,10);
 
-  // ── HEAD — round, expressive ──
-  ctx.fillStyle='#d0784a'; ctx.fillRect(-19,-136,38,44);
-  // Cheek flush
-  ctx.fillStyle='rgba(255,80,80,0.38)';
+  // ── HEAD ──
+  ctx.fillStyle='#d07040'; ctx.fillRect(-19,-136,38,44);
+  // Cheek flush — always red
+  ctx.fillStyle='rgba(255,80,60,0.42)';
   ctx.beginPath(); ctx.arc(-13,-112,7,0,Math.PI*2); ctx.fill();
   ctx.beginPath(); ctx.arc(13,-112,7,0,Math.PI*2); ctx.fill();
 
   // ── HAIR — messy wild ──
   ctx.fillStyle='#1a0800';
-  ctx.fillRect(-21,-144,42,14);        // base
-  ctx.fillRect(-25,-138,11,8);         // left puff
-  ctx.fillRect(14,-140,11,10);         // right puff
-  ctx.fillRect(-9,-150,7,10);          // left tuft
-  ctx.fillRect(2,-152,9,12);           // right tuft
-  ctx.fillRect(-17,-148,8,8);          // ear lock
-  ctx.fillStyle='#3a1800'; ctx.fillRect(-5,-144,6,10); // gloss
+  ctx.fillRect(-21,-144,42,14);    // base
+  ctx.fillRect(-25,-138,11,8);     // left
+  ctx.fillRect(14,-140,11,10);     // right
+  ctx.fillRect(-9,-150,7,10);      // top-left tuft
+  ctx.fillRect(2,-152,9,12);       // top-right tuft
+  ctx.fillRect(-17,-148,8,8);      // ear lock
+  ctx.fillStyle='#3a1800'; ctx.fillRect(-5,-144,7,10); // gloss
 
   // ── EYES ──
   if (hurt) {
-    // Spiral eyes when hurt
-    ctx.strokeStyle='#ff4e6a'; ctx.lineWidth=2.5;
+    // Dizzy spiral eyes
+    ctx.strokeStyle='#ff4466'; ctx.lineWidth=2.5;
     ctx.beginPath(); ctx.arc(-9,-126,5,0,Math.PI*2); ctx.stroke();
     ctx.beginPath(); ctx.arc(-9,-126,2,0,Math.PI*2); ctx.stroke();
     ctx.beginPath(); ctx.arc(9,-126,5,0,Math.PI*2); ctx.stroke();
     ctx.beginPath(); ctx.arc(9,-126,2,0,Math.PI*2); ctx.stroke();
+    ctx.fillStyle='#ff4466';
+    ctx.beginPath(); ctx.arc(-9,-126,1,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(9,-126,1,0,Math.PI*2); ctx.fill();
   } else {
-    // Wide excited eyes
+    // Wide excited eyes, larger during burst/shout
+    const ey = shout||burst ? 12 : 10;
     ctx.fillStyle='#fff';
-    ctx.fillRect(-15,-130,11,11); ctx.fillRect(4,-130,11,11);
-    ctx.fillStyle='#2a1a00';
-    ctx.fillRect(-12,-128,5,6);  ctx.fillRect(7,-128,5,6);
-    ctx.fillStyle='#fff'; // glint
-    ctx.fillRect(-11,-128,2,2);  ctx.fillRect(8,-128,2,2);
-    // Raised brows (excited/angry)
+    ctx.fillRect(-15,-132,ey+1,ey); ctx.fillRect(4,-132,ey+1,ey);
+    ctx.fillStyle='#2a1800';
+    ctx.fillRect(-12,-130,5,6); ctx.fillRect(7,-130,5,6);
+    // glints
+    ctx.fillStyle='#fff';
+    ctx.fillRect(-11,-130,2,2); ctx.fillRect(8,-130,2,2);
+    // Eyebrows — raised (excited)
     ctx.fillStyle='#1a0800';
-    ctx.fillRect(-16,-133,12,3); ctx.fillRect(4,-134,12,3);
+    ctx.fillRect(-16,-135,12,3); ctx.fillRect(4,-136,12,3);
   }
 
-  // ── MOUTH — big animated opening ──
-  const mh = hurt ? 3 : Math.max(4, mouth*24);
+  // ── MOUTH — animated open ──
+  const mh = hurt ? 2 : Math.max(4, mouthOpen * 26);
+  const mw = hurt ? 20 : 24 + mouthOpen*4;
   ctx.fillStyle='#1a0000';
-  ctx.fillRect(-13,-114,26,mh);
-  if (!hurt && mouth>0.25) {
-    ctx.fillStyle='#f0f0e0'; // teeth top
-    ctx.fillRect(-11,-114,9,6); ctx.fillRect(-1,-114,9,6); ctx.fillRect(9,-114,4,6);
+  ctx.fillRect(-mw/2,-114,mw,mh);
+  // Teeth
+  if (!hurt && mouthOpen > 0.25) {
+    ctx.fillStyle='#eeeedd';
+    ctx.fillRect(-mw/2+1,-114,8,5); ctx.fillRect(-mw/2+10,-114,8,5); ctx.fillRect(-mw/2+20,-114,Math.max(0,mw-22),5);
   }
-  if (mouth>0.55 && !hurt) {
-    ctx.fillStyle='#ff4466'; // tongue
-    ctx.fillRect(-7,-108,14,6);
+  // Tongue
+  if (mouthOpen > 0.55 && !hurt) {
+    ctx.fillStyle='#ff3355'; ctx.fillRect(-7,-108,14,6);
   }
 
-  // ── YASHAS NAME — always visible, above head ──
+  // Noise lines emanating during shout/burst
+  if (shout || burst) {
+    ctx.strokeStyle=burst?'rgba(255,150,0,0.5)':'rgba(255,68,102,0.45)'; ctx.lineWidth=2;
+    for (let i=0;i<5;i++) {
+      const a=(i/5)*Math.PI-Math.PI/2;
+      const r1=22, r2=45+Math.sin(ticks*0.2+i)*8;
+      ctx.beginPath(); ctx.moveTo(Math.cos(a)*r1,-92+Math.sin(a)*10); ctx.lineTo(Math.cos(a)*r2,-92+Math.sin(a)*30); ctx.stroke();
+    }
+  }
+
+  // ── YASHAS NAME — always clearly visible above head ──
   ctx.scale(1/facing,1); // un-flip text
-  ctx.font='900 15px Bangers,cursive';
   ctx.textAlign='center';
-  ctx.fillStyle='#ff4e6a'; ctx.strokeStyle='#220000'; ctx.lineWidth=4;
-  ctx.shadowColor='#ff4e6a'; ctx.shadowBlur=14;
-  ctx.strokeText('YASHAS', 0, -155);
-  ctx.fillText('YASHAS', 0, -155);
+
+  // Name background pill
+  ctx.fillStyle='rgba(255,68,102,0.22)';
+  const nw=70, nh=16;
+  ctx.fillRect(-nw/2,-165,nw,nh);
+
+  // Name text with glow
+  ctx.font='900 16px Bangers,cursive';
+  ctx.fillStyle='#ff4466'; ctx.strokeStyle='#220000'; ctx.lineWidth=4;
+  ctx.shadowColor='#ff4466'; ctx.shadowBlur=16;
+  ctx.strokeText('YASHAS',0,-152);
+  ctx.fillText('YASHAS',0,-152);
   ctx.shadowBlur=0;
 
-  // Animated underline under name
-  ctx.strokeStyle='#ff4e6a'; ctx.lineWidth=2;
-  const uw = 50+8*Math.sin(ticks*0.1);
-  ctx.beginPath(); ctx.moveTo(-uw/2,-149); ctx.lineTo(uw/2,-149); ctx.stroke();
+  // Animated underline
+  ctx.strokeStyle='rgba(255,68,102,0.7)'; ctx.lineWidth=2;
+  const uw=50+10*Math.sin(ticks*0.12);
+  ctx.beginPath(); ctx.moveTo(-uw/2,-147); ctx.lineTo(uw/2,-147); ctx.stroke();
 
   // Sub-label
-  ctx.font='7px Bangers,cursive'; ctx.fillStyle='rgba(255,78,106,0.55)';
-  ctx.fillText('THE NOISEMAKER', 0, -140);
+  ctx.font='7px Bangers,cursive'; ctx.fillStyle='rgba(255,68,102,0.55)';
+  ctx.fillText('THE NOISEMAKER',-0,-138);
 
   ctx.restore();
 }
 
-/* ── 8. UPDATE ── */
-function update() {
-  if (!running || paused || over) return;
-  ticks++;
-  const D = DIFFS[diff];
+/* ── 9. BACKGROUND & WORLD ─────────────────────────────────── */
+function drawBackground() {
+  // Sky gradient
+  const sky = ctx.createLinearGradient(0,0,0,GH);
+  sky.addColorStop(0,'#05040f'); sky.addColorStop(0.5,'#0c0a20'); sky.addColorStop(1,'#141430');
+  ctx.fillStyle=sky; ctx.fillRect(0,0,GW,GH);
 
-  /* PAVAN MOVEMENT */
-  let mv = false;
-  if (keys['ArrowLeft']||keys['KeyA'])  { P.vx=-P.speed; P.facing=-1; mv=true; }
-  else if (keys['ArrowRight']||keys['KeyD']) { P.vx=P.speed; P.facing=1; mv=true; }
-  else P.vx *= 0.65;
+  // Stars with twinkle
+  ctx.fillStyle='rgba(255,255,255,0.6)';
+  const stars=[[80,30],[200,55],[350,18],[480,65],[640,28],[750,50],[860,15],[140,100],[430,88],[720,75],[50,145],[900,130],[300,140],[600,110]];
+  stars.forEach(([sx,sy])=>{
+    const s=0.3+0.7*((Math.sin(ticks*0.007+sx*0.1)+1)/2);
+    ctx.globalAlpha=s;
+    ctx.beginPath(); ctx.arc(sx,sy,1.3,0,Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha=1;
 
-  P.vy += GRAVITY;
-  P.x  += P.vx; P.y += P.vy;
+  // City silhouette
+  const buildings=[[0,390,90,110],[95,400,65,100],[170,385,100,115],[280,380,75,120],[365,395,90,105],[465,388,55,112],[528,375,120,125],[658,398,65,102],[733,382,85,118],[828,378,100,122]];
+  buildings.forEach(([bx,by,bw,bh])=>{
+    ctx.fillStyle='rgba(12,8,28,0.88)';
+    ctx.fillRect(bx,by,bw,bh);
+    // Windows
+    for(let wr=0;wr<4;wr++) for(let wc=0;wc<Math.floor(bw/14);wc++){
+      const wx=bx+6+wc*14, wy=by+8+wr*18;
+      if(Math.sin(wx*2.3+wr*4.1+ticks*0.015)>0.05) {
+        ctx.fillStyle=`rgba(255,220,80,${0.2+Math.random()*0.1})`;
+        ctx.fillRect(wx,wy,6,8);
+      }
+    }
+  });
 
-  if (P.y >= GROUND_Y-P.h) { P.y=GROUND_Y-P.h; P.vy=0; P.onGnd=true; if(P.state==='jump') P.state='idle'; }
-  else P.onGnd = false;
-  P.x = Math.max(0, Math.min(GW-P.w, P.x));
+  // Ground with glow
+  const grd=ctx.createLinearGradient(0,GROUND,0,GH);
+  grd.addColorStop(0,'#22206a'); grd.addColorStop(1,'#0d0c30');
+  ctx.fillStyle=grd; ctx.fillRect(0,GROUND,GW,GH-GROUND);
 
-  // Bob animation
-  P.bobT += 0.1;
-  P.bob = (P.onGnd && mv) ? Math.sin(P.bobT*2)*3.5 : 0;
+  // Ground glow line
+  ctx.strokeStyle='rgba(80,80,255,0.7)'; ctx.lineWidth=2;
+  ctx.shadowColor='rgba(80,80,255,0.9)'; ctx.shadowBlur=10;
+  ctx.beginPath(); ctx.moveTo(0,GROUND); ctx.lineTo(GW,GROUND); ctx.stroke();
+  ctx.shadowBlur=0;
 
-  // State
-  if (P.strikeT > 0) { P.strikeT--; P.state='strike'; }
-  else if (!mv && P.onGnd) P.state='idle';
-  else if (mv && P.onGnd)  P.state='walk';
-
-  // Mute
-  if (muteOn) {
-    muteTimer--;
-    if (muteTimer<=0) { muteOn=false; P.state='idle'; }
-    noise = Math.max(0, noise-0.28);
-    if (noise<=0) win();
+  // Perspective lines on ground
+  ctx.strokeStyle='rgba(60,60,180,0.12)'; ctx.lineWidth=1;
+  for(let gx=0;gx<GW;gx+=70) {
+    ctx.beginPath(); ctx.moveTo(gx,GROUND); ctx.lineTo(gx-40,GH); ctx.stroke();
   }
-  if (muteCd>0) muteCd--;
+}
 
-  /* YASHAS AI */
-  Y.shakeX *= 0.72;
-  Y.mouthT += 0.16;
-  Y.mouthVal = (Math.sin(Y.mouthT)+1)/2;
-  Y.stateT--;
+/* ── 10. HUD ──────────────────────────────────────────────── */
+function drawHUD() {
+  const padX=14, padY=10;
+  const barW=160, barH=12;
 
-  if (Y.state==='hurt') {
-    Y.vx=0;
-    if (Y.stateT<=0) { Y.state='taunt'; Y.stateT=60; }
-  } else if (muteOn) {
-    Y.vx=0; Y.state='hurt'; Y.stateT=8;
-    Y.shakeX=(Math.random()-0.5)*7;
+  // ── PAVAN side (left) ──
+  // Health bar label
+  ctx.font='900 9px Bangers,cursive'; ctx.fillStyle='rgba(56,217,255,0.6)';
+  ctx.textAlign='left'; ctx.fillText('PAVAN MANGALI',padX,padY+8);
+
+  // Health bar track
+  ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.strokeStyle='rgba(56,217,255,0.3)'; ctx.lineWidth=1;
+  ctx.fillRect(padX,padY+12,barW,barH); ctx.strokeRect(padX,padY+12,barW,barH);
+
+  // Health fill (green→orange→red)
+  const hpPct = Math.max(0,Math.min(100,health))/100;
+  const hpCol = hpPct>0.5?'#22ff88': hpPct>0.25?'#ffaa00':'#ff2244';
+  ctx.fillStyle=hpCol; ctx.shadowColor=hpCol; ctx.shadowBlur=8;
+  ctx.fillRect(padX,padY+12,barW*hpPct,barH);
+  ctx.shadowBlur=0;
+  ctx.font='700 7px Nunito,sans-serif'; ctx.fillStyle='#fff';
+  ctx.fillText('HP: '+Math.ceil(health)+'%', padX+barW+5, padY+22);
+
+  // ── YASHAS side (right) ──
+  const rx = GW - padX - barW;
+  ctx.font='900 9px Bangers,cursive'; ctx.fillStyle='rgba(255,68,102,0.7)';
+  ctx.textAlign='right'; ctx.fillText('NOISE METER',GW-padX,padY+8);
+
+  // Noise bar track
+  ctx.textAlign='left';
+  ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.strokeStyle='rgba(255,68,102,0.3)';
+  ctx.fillRect(rx,padY+12,barW,barH); ctx.strokeRect(rx,padY+12,barW,barH);
+
+  // Noise fill (orange→red, pulsing when high)
+  const nPct = Math.max(0,Math.min(100,noise))/100;
+  const nFlash = noise>70 && Math.floor(ticks/8)%2===0;
+  const nCol = nFlash ? '#ffffff' : (nPct>0.6?'#ff2244':'#ff6600');
+  ctx.fillStyle=nCol; ctx.shadowColor=nCol; ctx.shadowBlur=nPct>0.6?12:6;
+  ctx.fillRect(rx,padY+12,barW*nPct,barH);
+  ctx.shadowBlur=0;
+  ctx.font='700 7px Nunito,sans-serif'; ctx.fillStyle='#fff';
+  ctx.textAlign='right'; ctx.fillText(Math.ceil(noise)+'%', rx-5, padY+22);
+
+  // ── CENTER — Level badge ──
+  ctx.textAlign='center';
+  ctx.font='900 11px Bangers,cursive';
+  ctx.fillStyle='rgba(255,215,0,0.8)'; ctx.strokeStyle='rgba(0,0,0,0.6)'; ctx.lineWidth=2;
+  ctx.shadowColor='#ffd700'; ctx.shadowBlur=6;
+  ctx.strokeText(LEVELS[level].label, GW/2, padY+20);
+  ctx.fillText(LEVELS[level].label, GW/2, padY+20);
+  ctx.shadowBlur=0;
+
+  // Score
+  ctx.font='700 8px Nunito,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.45)';
+  ctx.fillText('SCORE: '+score, GW/2, padY+34);
+
+  // ── MUTE cooldown bar ──
+  if (muteCD > 0) {
+    const mpct = 1-(muteCD/MUTE_CD_MAX);
+    const bx=GW/2-50, by=GH-36;
+    ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(bx,by,100,6);
+    ctx.fillStyle='#b06aff'; ctx.shadowColor='#b06aff'; ctx.shadowBlur=6;
+    ctx.fillRect(bx,by,100*mpct,6); ctx.shadowBlur=0;
+    ctx.font='6px Bangers,cursive'; ctx.fillStyle='rgba(176,106,255,0.6)';
+    ctx.fillText('MUTE CD',GW/2,by-3);
   } else {
-    const dx = P.x - Y.x;
-    Y.facing = dx>0 ? 1 : -1;
-    Y.vx = Math.abs(dx)>200 ? Y.facing*D.ySpeed : Y.facing*D.ySpeed*0.25;
-    Y.state = Math.abs(dx)<200 ? 'shout' : 'walk';
+    ctx.font='7px Bangers,cursive'; ctx.fillStyle='rgba(176,106,255,0.6)';
+    ctx.fillText('🔇 MUTE READY',GW/2,GH-28);
+  }
 
-    // BLA text
-    Y.blaT--;
-    if (Y.blaT<=0) { blaText(Y.x+Y.w/2, Y.y); Y.blaT=28+Math.floor(Math.random()*38); }
+  // ── DASH cooldown ──
+  if (dashCD > 0) {
+    const dpct = 1-(dashCD/DASH_CD_MAX);
+    ctx.font='6px Bangers,cursive'; ctx.fillStyle='rgba(34,255,136,0.5)';
+    ctx.fillText('DASH '+(Math.ceil(dashCD/60))+'s', 14, GH-14);
+  } else {
+    ctx.font='6px Bangers,cursive'; ctx.fillStyle='rgba(34,255,136,0.5)';
+    ctx.fillText('DASH READY', 14, GH-14);
+  }
 
-    // Sound bullets
-    Y.bulletT--;
-    if (Y.bulletT<=0) {
-      Y.bulletT = D.bInterval;
-      const bvx = Y.facing * D.bSpeed;
-      bullets.push({ x:Y.x+Y.w/2, y:Y.y+46, vx:bvx, vy:(Math.random()-0.5)*0.4, r:13, life:1 });
+  // ── COMBO display ──
+  if (combo >= 2) {
+    const cAlpha = Math.min(1, comboTimer/30);
+    ctx.globalAlpha = cAlpha;
+    ctx.font='900 '+(16+combo*2)+'px Bangers,cursive';
+    ctx.fillStyle = combo>=5?'#ffd700':combo>=3?'#ff8800':'#ffffff';
+    ctx.textAlign='center';
+    ctx.shadowColor=ctx.fillStyle; ctx.shadowBlur=16;
+    ctx.fillText('COMBO x'+combo+'!!', GW/2, GH/2-80);
+    ctx.shadowBlur=0; ctx.globalAlpha=1;
+  }
+
+  // Desktop controls hint (small)
+  if (!isTouchDevice) {
+    ctx.font='600 7px Nunito,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.2)';
+    ctx.textAlign='center';
+    ctx.fillText('A/D=Move  Space=Jump  F=Strike  M=Mute  Shift=Dash  P=Pause', GW/2, GH-8);
+  }
+}
+
+/* ── 11. SCREEN DRAWING ──────────────────────────────────── */
+function drawMenu() {
+  drawBackground();
+
+  // Title glow
+  ctx.textAlign='center';
+  ctx.font='900 42px Bangers,cursive';
+  ctx.fillStyle='#38d9ff'; ctx.strokeStyle='#001122'; ctx.lineWidth=5;
+  ctx.shadowColor='#38d9ff'; ctx.shadowBlur=24;
+  ctx.strokeText('PAVAN MANGALI', GW/2, 90);
+  ctx.fillText('PAVAN MANGALI', GW/2, 90);
+  ctx.shadowBlur=0;
+
+  ctx.font='900 26px Bangers,cursive';
+  ctx.fillStyle='#ff4466'; ctx.shadowColor='#ff4466'; ctx.shadowBlur=16;
+  ctx.strokeText('SILENCE YASHAS', GW/2, 126);
+  ctx.fillText('SILENCE YASHAS', GW/2, 126);
+  ctx.shadowBlur=0;
+
+  ctx.font='700 11px Nunito,sans-serif'; ctx.fillStyle='rgba(255,215,0,0.8)';
+  ctx.fillText('THE ULTIMATE SHOWDOWN', GW/2, 150);
+
+  // Draw preview characters
+  drawPavan(200, GROUND, 1, 'idle', 0, false, 0);
+  drawYashas(590+Y.w/2, GROUND+Y.h, -1, 'taunt', (Math.sin(ticks*0.06)+1)/2, 0);
+
+  // VS text
+  ctx.font='900 38px Bangers,cursive'; ctx.fillStyle='#ffd700';
+  ctx.strokeStyle='#442200'; ctx.lineWidth=4;
+  ctx.shadowColor='#ffd700'; ctx.shadowBlur=18;
+  ctx.strokeText('VS', GW/2, GROUND-60);
+  ctx.fillText('VS', GW/2, GROUND-60);
+  ctx.shadowBlur=0;
+
+  // Start prompt — pulsing
+  const alpha = 0.6+0.4*Math.sin(ticks*0.07);
+  ctx.globalAlpha = alpha;
+  ctx.font='900 18px Bangers,cursive'; ctx.fillStyle='#ffffff';
+  ctx.fillText(isTouchDevice?'TAP TO START':'PRESS ANY KEY OR TAP TO START', GW/2, GROUND+60);
+  ctx.globalAlpha=1;
+
+  // Controls
+  ctx.font='700 9px Nunito,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.4)';
+  if (!isTouchDevice) {
+    ctx.fillText('A/D←→: Move  |  Space: Jump  |  F: Strike  |  M: Mute  |  Shift: Dash', GW/2, GROUND+84);
+  } else {
+    ctx.fillText('Use on-screen buttons to control Pavan', GW/2, GROUND+84);
+  }
+}
+
+function drawGameOver() {
+  // Dark overlay
+  ctx.fillStyle='rgba(0,0,0,0.7)'; ctx.fillRect(0,0,GW,GH);
+
+  ctx.textAlign='center';
+  // Shake text
+  const sx=screenShakeX, sy=screenShakeY;
+
+  ctx.font='900 56px Bangers,cursive';
+  ctx.fillStyle='#ff4466'; ctx.strokeStyle='#220000'; ctx.lineWidth=5;
+  ctx.shadowColor='#ff4466'; ctx.shadowBlur=28;
+  ctx.strokeText('TOO LOUD!', GW/2+sx, GH/2-60+sy);
+  ctx.fillText('TOO LOUD!', GW/2+sx, GH/2-60+sy);
+  ctx.shadowBlur=0;
+
+  ctx.font='700 14px Nunito,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.7)';
+  ctx.fillText('Yashas was too noisy... Pavan could not silence him!', GW/2, GH/2);
+
+  ctx.font='700 11px Nunito,sans-serif'; ctx.fillStyle='rgba(255,215,0,0.8)';
+  ctx.fillText('SCORE: '+score+'  |  LEVEL: '+(level+1), GW/2, GH/2+28);
+
+  const alpha=0.6+0.4*Math.sin(ticks*0.08);
+  ctx.globalAlpha=alpha;
+  ctx.font='900 15px Bangers,cursive'; ctx.fillStyle='#fff';
+  ctx.fillText(isTouchDevice?'TAP TO RETURN':'SPACE / TAP TO RETURN', GW/2, GH/2+66);
+  ctx.globalAlpha=1;
+}
+
+function drawWin() {
+  ctx.fillStyle='rgba(0,0,20,0.7)'; ctx.fillRect(0,0,GW,GH);
+
+  ctx.textAlign='center';
+  ctx.font='900 54px Bangers,cursive';
+  ctx.fillStyle='#38d9ff'; ctx.strokeStyle='#001122'; ctx.lineWidth=5;
+  ctx.shadowColor='#38d9ff'; ctx.shadowBlur=30;
+  ctx.strokeText('SILENCED!!', GW/2, GH/2-70);
+  ctx.fillText('SILENCED!!', GW/2, GH/2-70);
+  ctx.shadowBlur=0;
+
+  ctx.font='700 14px Nunito,sans-serif'; ctx.fillStyle='rgba(255,215,0,0.9)';
+  ctx.fillText('Yashas has been silenced! Pavan wins!!', GW/2, GH/2-18);
+
+  ctx.font='700 11px Nunito,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.7)';
+  ctx.fillText('SCORE: '+score+'  |  LEVEL: '+(level+1)+'  |  COMBO MAX: '+combo, GW/2, GH/2+14);
+
+  // Firework particles already in pool, draw them
+  const alpha=0.6+0.4*Math.sin(ticks*0.08);
+  ctx.globalAlpha=alpha;
+  ctx.font='900 15px Bangers,cursive'; ctx.fillStyle='#fff';
+  ctx.fillText(isTouchDevice?'TAP TO RETURN':'SPACE / TAP TO RETURN', GW/2, GH/2+60);
+  ctx.globalAlpha=1;
+}
+
+function drawLevelUp() {
+  ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(0,0,GW,GH);
+  ctx.textAlign='center';
+  const s=Math.min(1,levelUpTimer/20);
+  ctx.font=`900 ${Math.floor(38*s)}px Bangers,cursive`;
+  ctx.fillStyle='#ffd700'; ctx.shadowColor='#ffd700'; ctx.shadowBlur=22;
+  ctx.fillText(LEVELS[level].label+' START!', GW/2, GH/2);
+  ctx.shadowBlur=0;
+  ctx.font='700 11px Nunito,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.6)';
+  ctx.fillText('Yashas is getting louder...', GW/2, GH/2+32);
+}
+
+/* ── 12. GAME LOGIC (UPDATE) ─────────────────────────────── */
+function update() {
+  if (gameState !== 'playing' && gameState !== 'levelup') return;
+
+  // Slow motion effect
+  if (slowMotion) {
+    slowMotionT--;
+    if (slowMotionT <= 0) slowMotion = false;
+  }
+  const dt = slowMotion ? 0.35 : 1;
+
+  ticks++;
+
+  // Level up timer
+  if (gameState === 'levelup') {
+    levelUpTimer--;
+    if (levelUpTimer <= 0) gameState = 'playing';
+    return;
+  }
+
+  const LVL = LEVELS[level];
+
+  // ── SCREEN SHAKE DECAY ──
+  if (screenShakeDecay > 0) {
+    screenShakeDecay -= 1.2;
+    screenShakeX = (Math.random()-0.5)*screenShakeDecay;
+    screenShakeY = (Math.random()-0.5)*screenShakeDecay*0.5;
+    if (screenShakeDecay < 0) { screenShakeX=0; screenShakeY=0; screenShakeDecay=0; }
+  }
+
+  // ── PAVAN MOVEMENT ──
+  let moving = false;
+  const left  = keys['ArrowLeft']  || keys['KeyA'];
+  const right = keys['ArrowRight'] || keys['KeyD'];
+
+  if (P.state !== 'dash') {
+    if (left)  { P.vx = -P.speed; P.facing = -1; moving = true; }
+    else if (right) { P.vx = P.speed; P.facing = 1; moving = true; }
+    else P.vx *= 0.65;
+
+    // Jump from keyboard
+    if ((keys['Space'] || keys['ArrowUp']) && P.onGround) doJump();
+
+    // F key strike
+    if (keys['KeyF'] && P.strikeT <= 0) doStrike();
+
+    // M key mute
+    if (keys['KeyM'] && muteCD <= 0) doMute();
+
+    // Shift key dash
+    if (keys['ShiftLeft'] && dashCD <= 0) doDash();
+  }
+
+  // Dash movement
+  if (P.dashT > 0) {
+    P.vx = P.facing * P.dashSpeed;
+    P.dashT--;
+    dashTrail(P.x, P.y);
+    if (P.dashT <= 0) { P.state='idle'; }
+  }
+
+  // Apply gravity
+  P.vy = (P.vy + GRAVITY) * dt;
+  P.x  += P.vx * dt;
+  P.y  += P.vy * dt;
+
+  // Ground collision
+  if (P.y >= GROUND) {
+    P.y=GROUND; P.vy=0; P.onGround=true;
+    if (P.state==='jump') P.state='idle';
+  } else P.onGround=false;
+
+  // Wall clamp
+  P.x = Math.max(P.w/2, Math.min(GW-P.w/2, P.x));
+
+  // Bob
+  P.bobT += dt;
+
+  // State transitions
+  if (P.strikeT > 0) { P.strikeT -= dt; P.state='strike'; }
+  else if (!moving && P.onGround && P.state!=='mute' && P.state!=='dash') P.state='idle';
+  else if (moving && P.onGround && P.state!=='strike' && P.state!=='mute' && P.state!=='dash') P.state='walk';
+
+  // Mute active drain
+  if (P.muteActive) {
+    P.muteDuration -= dt;
+    P.state = 'mute';
+    noise = Math.max(0, noise - 0.35*dt);
+    if (noise <= 0) { noise=0; triggerWin(); }
+    if (P.muteDuration <= 0) { P.muteActive=false; P.state='idle'; }
+  }
+
+  // Cooldowns
+  if (muteCD > 0) muteCD -= dt;
+  if (dashCD > 0) dashCD -= dt;
+  if (P.invincible > 0) P.invincible -= dt;
+
+  // Combo decay
+  if (comboTimer > 0) { comboTimer -= dt; if(comboTimer<=0){combo=0;} }
+
+  // ── YASHAS AI ──
+  Y.shakeX *= 0.72;
+  Y.mouthT += 0.18 * dt;
+  Y.mouthOpen = (Math.sin(Y.mouthT)+1)/2;
+  Y.stateT -= dt;
+
+  if (Y.state === 'hurt') {
+    Y.vx = 0;
+    if (Y.stateT <= 0) { Y.state='taunt'; Y.stateT=60; }
+  } else if (P.muteActive) {
+    // Yashas frozen when muted
+    Y.vx = 0; Y.state='hurt'; Y.stateT=8;
+    Y.shakeX = (Math.random()-0.5)*8;
+  } else {
+    // Walk toward Pavan
+    const dx = (P.x + P.w/2) - (Y.x + Y.w/2);
+    Y.facing = dx > 0 ? 1 : -1;
+    const dist = Math.abs(dx);
+
+    if (dist > 200) { Y.vx = Y.facing * LVL.ySpeed; Y.state='walk'; }
+    else            { Y.vx = Y.facing * LVL.ySpeed * 0.2; Y.state='shout'; }
+
+    // BLA text spam
+    Y.blaTimer -= dt;
+    if (Y.blaTimer <= 0) {
+      spawnBla(Y.x + Y.w/2 + Y.facing*20, Y.y-20);
+      Y.blaTimer = 22+Math.random()*32;
+    }
+
+    // Dialog quip
+    Y.dialogTimer -= dt;
+    if (Y.dialogTimer <= 0) {
+      Y.currentDialog = YASHAS_LINES[Math.floor(Math.random()*YASHAS_LINES.length)];
+      addFloat(Y.x+Y.w/2, Y.y-100, '"'+Y.currentDialog+'"', '#ff4466', 13);
+      sndBla();
+      Y.dialogTimer = 180+Math.random()*120;
+    }
+
+    // Sound bullet fire
+    Y.bulletTimer -= dt;
+    if (Y.bulletTimer <= 0) {
+      Y.bulletTimer = LVL.bInterval;
+      fireSoundBullet();
+    }
+
+    // Noise burst (area attack) — every 8 seconds
+    Y.burstTimer -= dt;
+    if (Y.burstTimer <= 0) {
+      Y.burstTimer = 480;
+      Y.state = 'burst'; Y.stateT = 50;
+      noiseBurst();
     }
   }
 
   // Yashas physics
-  Y.vy += GRAVITY; Y.x += Y.vx; Y.y += Y.vy;
-  if (Y.y >= GROUND_Y-Y.h) { Y.y=GROUND_Y-Y.h; Y.vy=0; Y.onGnd=true; }
-  Y.x = Math.max(0, Math.min(GW-Y.w, Y.x));
+  Y.vy = (Y.vy + GRAVITY) * dt;
+  Y.x += Y.vx * dt; Y.y += Y.vy * dt;
+  if (Y.y >= GROUND) { Y.y=GROUND; Y.vy=0; Y.onGnd=true; }
+  Y.x = Math.max(10, Math.min(GW-Y.w-10, Y.x));
 
-  /* SOUND BULLETS */
+  // ── BULLETS ──
   bullets.forEach(b => {
-    b.x += b.vx; b.y += b.vy; b.life -= 0.007;
-    if (!muteOn && b.x>P.x && b.x<P.x+P.w && b.y>P.y && b.y<P.y+P.h) {
-      b.life=0;
-      control = Math.max(0, control-D.noiseDmg);
-      blaText(P.x+P.w/2, P.y);
-      if (control<=0) lose();
+    b.x += b.vx * dt; b.y += b.vy * dt; b.life -= 0.008 * dt;
+    // Hit Pavan?
+    if (!P.muteActive && P.invincible <= 0 && b.active &&
+        b.x > P.x && b.x < P.x+P.w && b.y > P.y && b.y < P.y+P.h) {
+      b.active = false;
+      health = Math.max(0, health - LVL.noiseDmg);
+      P.invincible = 40;
+      spawnBla(P.x+P.w/2, P.y-10);
+      triggerShake(5);
+      addFloat(P.x+P.w/2, P.y-30, '-'+LVL.noiseDmg+' HP', '#ff4466', 16);
+      if (health <= 0) triggerLose();
     }
   });
-  bullets = bullets.filter(b=>b.life>0&&b.x>-60&&b.x<GW+60);
+  bullets = bullets.filter(b => b.active && b.life > 0 && b.x > -80 && b.x < GW+80);
 
-  /* NOISE GROWS OVER TIME */
-  if (!muteOn) {
-    noise += D.noiseRate;
-    if (noise>=100) lose();
+  // ── BLA TEXTS ──
+  blaTexts.forEach(b => { b.x += b.vx*dt; b.y += b.vy*dt; b.life -= 0.018*dt; });
+  blaTexts = blaTexts.filter(b => b.life > 0);
+
+  // ── NOISE GROWS OVER TIME ──
+  if (!P.muteActive) {
+    noise += LVL.noiseRate * dt;
+    if (noise >= 100) { noise=100; triggerLose(); }
   }
 
-  /* PARTICLES */
+  // ── LEVEL PROGRESSION ──
+  const newLevel = Math.min(LEVELS.length-1, Math.floor(ticks/(60*40))); // every 40s
+  if (newLevel > level) {
+    level = newLevel;
+    gameState = 'levelup'; levelUpTimer = 100;
+    sndLevelUp();
+    triggerShake(10);
+    addFloat(GW/2, GH/2-20, '⚡ '+LEVELS[level].label, '#ffd700', 26);
+  }
+
+  // ── PARTICLES ──
   particles.forEach(p => {
-    p.x += p.vx||0; p.y += p.vy||0; p.life -= 0.022;
-    if (p.type==='spark') { p.vy+=0.22; p.vx*=0.91; p.vy*=0.91; }
-    if (p.type==='mute')  { p.vx*=0.86; p.vy*=0.86; }
-    if (p.type==='ring')  { p.r=p.maxR*(1-p.life); }
-    if (p.type==='text')  { p.life-=0.009; }
-    if (p.type==='wave')  { p.r+=2; }
+    p.life -= 0.025 * dt;
+    if (p.delay) { p.delay -= dt; return; }
+    if (p.type==='spark') { p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=0.90; p.vy+=0.25*dt; p.vy*=0.90; }
+    if (p.type==='ring')  { p.r = p.maxR*(1-p.life); }
   });
-  particles = particles.filter(p=>p.life>0);
+  particles = particles.filter(p => p.life > 0);
 
-  /* ROUND UP */
-  if (ticks%1800===0) { round++; document.getElementById('waveBadge').textContent=`ROUND ${round}`; noise=Math.min(100,noise+7); }
-
-  /* HUD */
-  document.getElementById('noiseBar').style.width  = Math.max(0,Math.min(100,noise))+'%';
-  document.getElementById('ctrlBar').style.width   = Math.max(0,Math.min(100,control))+'%';
-  const mp = muteCd>0 ? ((MUTE_MAX-muteCd)/MUTE_MAX)*100 : 100;
-  document.getElementById('muteBar').style.width   = mp+'%';
+  // ── FLOATING TEXTS ──
+  floatingTexts.forEach(f => { f.y += f.vy*dt; f.life -= 0.018*dt; });
+  floatingTexts = floatingTexts.filter(f => f.life > 0);
 }
 
-/* ── 9. RENDER ── */
-function render() {
-  /* BACKGROUND */
-  // Sky
-  const sky = ctx.createLinearGradient(0,0,0,GH);
-  sky.addColorStop(0,'#06041a'); sky.addColorStop(0.65,'#0e0c28'); sky.addColorStop(1,'#16144a');
-  ctx.fillStyle=sky; ctx.fillRect(0,0,GW,GH);
-
-  // Stars
-  ctx.fillStyle='rgba(255,255,255,0.55)';
-  const sp=[[80,40],[200,65],[360,22],[480,75],[640,30],[780,58],[870,18],[140,115],[420,95],[720,88],[55,160],[900,140]];
-  sp.forEach(([sx,sy])=>{
-    ctx.beginPath(); ctx.arc(sx,sy+Math.sin(ticks*0.006+sx)*1.2,1.4,0,Math.PI*2); ctx.fill();
+/* ── 13. SPAWNERS ─────────────────────────────────────────── */
+function fireSoundBullet() {
+  const LVL = LEVELS[level];
+  const bvx = Y.facing * LVL.bSpeed;
+  bullets.push({
+    x: Y.x + Y.w/2, y: Y.y + 44,
+    vx: bvx, vy: (Math.random()-0.5)*0.5,
+    r: 14, life: 1, active: true,
+    type: 'sound'
   });
-
-  // City silhouette
-  ctx.fillStyle='rgba(14,10,36,0.85)';
-  [[0,425,90,90],[95,435,65,80],[170,420,110,100],[295,410,75,110],[380,430,95,80],[490,415,55,100],[560,408,130,107],[700,430,70,80],[780,415,90,95],[880,410,60,110]].forEach(([bx,by,bw,bh])=>{
-    ctx.fillRect(bx,by,bw,bh);
-  });
-  // Window lights
-  ctx.fillStyle='rgba(255,220,80,0.28)';
-  for(let i=0;i<35;i++){
-    const wx=8+(i*27)%GW, wy=418+Math.floor(i*9)%90;
-    if(Math.sin(i*3.3+ticks*0.018)>0.15) ctx.fillRect(wx,wy,4,6);
+  // Second bullet at slight angle for harder levels
+  if (level >= 2) {
+    bullets.push({ x:Y.x+Y.w/2, y:Y.y+44, vx:bvx*0.85, vy:-2+Math.random()*4, r:10, life:1, active:true, type:'sound' });
   }
+}
 
-  // Ground
-  const grd=ctx.createLinearGradient(0,GROUND_Y,0,GH);
-  grd.addColorStop(0,'#24245e'); grd.addColorStop(1,'#0e0e2e');
-  ctx.fillStyle=grd; ctx.fillRect(0,GROUND_Y,GW,GH-GROUND_Y);
-
-  ctx.strokeStyle='rgba(100,100,255,0.65)'; ctx.lineWidth=2;
-  ctx.shadowColor='rgba(100,100,255,0.8)'; ctx.shadowBlur=8;
-  ctx.beginPath(); ctx.moveTo(0,GROUND_Y); ctx.lineTo(GW,GROUND_Y); ctx.stroke();
-  ctx.shadowBlur=0;
-  // Ground grid
-  ctx.strokeStyle='rgba(70,70,160,0.14)'; ctx.lineWidth=1;
-  for(let gx=0;gx<GW;gx+=65){
-    ctx.beginPath(); ctx.moveTo(gx,GROUND_Y); ctx.lineTo(gx-35,GH); ctx.stroke();
+function noiseBurst() {
+  // 3-way burst attack
+  for (let i=0;i<5;i++) {
+    const a = (i/5)*Math.PI - Math.PI/2 + (Y.facing>0?0:Math.PI);
+    const LVL = LEVELS[level];
+    bullets.push({
+      x: Y.x+Y.w/2, y: Y.y+30,
+      vx: Math.cos(a)*LVL.bSpeed*1.2, vy: Math.sin(a)*LVL.bSpeed*0.8,
+      r: 16, life: 1, active: true, type:'burst'
+    });
   }
+  triggerShake(8);
+  addFloat(Y.x+Y.w/2, Y.y-60, '💥 NOISE BURST!!', '#ff4466', 20);
+}
 
-  if (!running) return;
-
-  /* RING PARTICLES (behind everything) */
-  particles.filter(p=>p.type==='ring').forEach(p=>{
-    ctx.save(); ctx.globalAlpha=p.life*0.55;
-    ctx.strokeStyle=p.col; ctx.lineWidth=3; ctx.shadowColor=p.col; ctx.shadowBlur=10;
-    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.stroke();
-    ctx.restore();
+function spawnBla(x, y) {
+  const words = ['BLA!','BLAH!','YAK!','HEY!','LOUD!','NOOO!','TALK!','!!!'];
+  const cols  = ['#ff4466','#ff8800','#ffd700','#ff66aa'];
+  blaTexts.push({
+    x, y: y-(Math.random()*30),
+    vx:(Math.random()-0.5)*2.5, vy:-1.8-Math.random()*1.2,
+    life:1, text:words[Math.floor(Math.random()*words.length)],
+    col:cols[Math.floor(Math.random()*cols.length)],
+    size:11+Math.floor(Math.random()*12)
   });
+}
 
-  /* SOUND BULLETS */
-  bullets.forEach(b=>{
+/* ── DRAW PARTICLES & BULLETS ────────────────────────────── */
+function drawParticles() {
+  particles.forEach(p => {
+    if (p.delay && p.delay > 0) return;
+    ctx.save(); ctx.globalAlpha = p.life;
+    if (p.type==='spark') {
+      ctx.fillStyle=p.col; ctx.shadowColor=p.col; ctx.shadowBlur=8;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r*p.life,0,Math.PI*2); ctx.fill();
+    }
+    if (p.type==='ring') {
+      ctx.strokeStyle=p.col; ctx.lineWidth=3*(p.life); ctx.shadowColor=p.col; ctx.shadowBlur=12;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.stroke();
+    }
+    ctx.shadowBlur=0; ctx.restore();
+  });
+}
+
+function drawBullets() {
+  bullets.forEach(b => {
+    if (!b.active) return;
     ctx.save(); ctx.globalAlpha=b.life;
-    const pulse=1+0.22*Math.sin(ticks*0.3);
+    const pulse=1+0.25*Math.sin(ticks*0.35);
+    const isBurst=b.type==='burst';
     const bg=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r*pulse);
     bg.addColorStop(0,'rgba(255,255,255,0.95)');
-    bg.addColorStop(0.35,'rgba(255,78,106,0.95)');
-    bg.addColorStop(1,'rgba(255,78,106,0)');
-    ctx.fillStyle=bg; ctx.shadowColor='#ff4e6a'; ctx.shadowBlur=18;
+    bg.addColorStop(0.3,isBurst?'rgba(255,150,0,0.9)':'rgba(255,68,102,0.9)');
+    bg.addColorStop(1,'rgba(255,68,102,0)');
+    ctx.fillStyle=bg; ctx.shadowColor=isBurst?'#ff9900':'#ff4466'; ctx.shadowBlur=18;
     ctx.beginPath(); ctx.arc(b.x,b.y,b.r*pulse,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#fff'; ctx.font='bold 11px Bangers,cursive'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.shadowBlur=0;
-    ctx.fillText('!',b.x,b.y);
+    // "!" inside
+    ctx.shadowBlur=0; ctx.fillStyle='#fff';
+    ctx.font='bold '+(isBurst?'14px':'11px')+' Bangers,cursive';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(isBurst?'!!':'!',b.x,b.y);
+    ctx.textBaseline='alphabetic';
     ctx.restore();
   });
+}
 
-  /* YASHAS */
-  drawYashas(Y.x+Y.w/2, Y.y+Y.h, Y.facing, Y.state, Y.mouthVal);
-
-  /* PAVAN */
-  drawPavan(P.x+P.w/2, P.y+P.h+P.bob, P.facing, P.state, P.strikeT);
-
-  /* MUTE AURA AROUND PAVAN */
-  if (muteOn) {
-    const cx2=P.x+P.w/2, cy2=P.y+P.h/2;
-    const pulse=1+0.14*Math.sin(ticks*0.25);
-    const ag=ctx.createRadialGradient(cx2,cy2,20,cx2,cy2,140*pulse);
-    ag.addColorStop(0,'rgba(167,139,250,0.14)'); ag.addColorStop(0.55,'rgba(167,139,250,0.07)'); ag.addColorStop(1,'transparent');
-    ctx.fillStyle=ag; ctx.beginPath(); ctx.arc(cx2,cy2,140*pulse,0,Math.PI*2); ctx.fill();
-    // Orbiting mute icons
-    for(let i=0;i<6;i++){
-      const a=(i/6)*Math.PI*2+ticks*0.04;
-      ctx.save(); ctx.globalAlpha=0.75;
-      ctx.font='16px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.fillText('🔇',cx2+Math.cos(a)*100,cy2+Math.sin(a)*100);
-      ctx.restore();
-    }
-  }
-
-  /* SPARK / MUTE / TEXT PARTICLES (front layer) */
-  particles.forEach(p=>{
-    if (p.type==='spark'||p.type==='mute') {
-      ctx.save(); ctx.globalAlpha=p.life;
-      ctx.fillStyle=p.col; ctx.shadowColor=p.col; ctx.shadowBlur=7;
-      ctx.beginPath(); ctx.arc(p.x,p.y,p.r*p.life,0,Math.PI*2); ctx.fill();
-      ctx.restore();
-    }
-    if (p.type==='text') {
-      ctx.save(); ctx.globalAlpha=p.life;
-      ctx.font=`900 ${p.sz}px Bangers,cursive`;
-      ctx.textAlign='center'; ctx.fillStyle=p.col; ctx.strokeStyle='#000'; ctx.lineWidth=3;
-      ctx.shadowColor=p.col; ctx.shadowBlur=10;
-      ctx.strokeText(p.text,p.x,p.y); ctx.fillText(p.text,p.x,p.y);
-      ctx.restore();
-    }
+function drawBlaTexts() {
+  blaTexts.forEach(b => {
+    ctx.save(); ctx.globalAlpha=b.life;
+    ctx.font='900 '+b.size+'px Bangers,cursive';
+    ctx.textAlign='center'; ctx.fillStyle=b.col; ctx.strokeStyle='rgba(0,0,0,0.8)'; ctx.lineWidth=2;
+    ctx.shadowColor=b.col; ctx.shadowBlur=8;
+    ctx.strokeText(b.text,b.x,b.y); ctx.fillText(b.text,b.x,b.y);
+    ctx.shadowBlur=0; ctx.restore();
   });
 }
 
-/* ── GAME LOOP ── */
-function loop() {
-  if (!running || paused) return;
-  update();
-  render();
-  if (!over) requestAnimationFrame(loop);
+function drawFloatingTexts() {
+  floatingTexts.forEach(f => {
+    ctx.save(); ctx.globalAlpha=f.life;
+    ctx.font='900 '+f.size+'px Bangers,cursive';
+    ctx.textAlign='center'; ctx.fillStyle=f.col; ctx.strokeStyle='#000'; ctx.lineWidth=3;
+    ctx.shadowColor=f.col; ctx.shadowBlur=10;
+    ctx.strokeText(f.text,f.x,f.y); ctx.fillText(f.text,f.x,f.y);
+    ctx.shadowBlur=0; ctx.restore();
+  });
 }
 
-/* ── 10. SCREEN MANAGEMENT ── */
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+/* ── MUTE AURA AROUND PAVAN ─────────────────────────────── */
+function drawMuteAura() {
+  if (!P.muteActive) return;
+  const cx=P.x+P.w/2-P.w/2, cy=P.y-P.h/2;
+  const pulse=1+0.18*Math.sin(ticks*0.2);
+  const ag=ctx.createRadialGradient(cx,cy,15,cx,cy,130*pulse);
+  ag.addColorStop(0,'rgba(176,106,255,0.18)');
+  ag.addColorStop(0.6,'rgba(176,106,255,0.07)');
+  ag.addColorStop(1,'transparent');
+  ctx.fillStyle=ag; ctx.beginPath(); ctx.arc(cx,cy,130*pulse,0,Math.PI*2); ctx.fill();
+  // Orbiting glyphs
+  for(let i=0;i<6;i++){
+    const a=(i/6)*Math.PI*2+ticks*0.045;
+    ctx.save(); ctx.globalAlpha=0.7;
+    ctx.font='14px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('🔇',cx+Math.cos(a)*95,cy+Math.sin(a)*95);
+    ctx.restore();
+  }
 }
 
-function toMenu() {
-  running=false; paused=false;
-  document.getElementById('pauseOv').classList.remove('on');
-  showScreen('menuScreen');
-  drawMenuChars();
+/* ── SLOW MO OVERLAY ───────────────────────────────────────*/
+function drawSlowMoOverlay() {
+  if (!slowMotion) return;
+  ctx.fillStyle='rgba(176,106,255,0.06)';
+  ctx.fillRect(0,0,GW,GH);
+  ctx.font='700 9px Nunito,sans-serif'; ctx.fillStyle='rgba(176,106,255,0.6)';
+  ctx.textAlign='center'; ctx.fillText('— SLOW MOTION —',GW/2,22);
+}
+
+/* ── 14. GAME LOOP ────────────────────────────────────────── */
+function frame(ts) {
+  requestAnimationFrame(frame);
+
+  ctx.save();
+
+  // Screen shake translate
+  if (screenShakeX || screenShakeY) ctx.translate(screenShakeX, screenShakeY);
+
+  if (gameState === 'menu') {
+    ticks++;
+    drawMenu();
+    // Animate Yashas mouth on menu
+    Y.mouthT += 0.18;
+    Y.mouthOpen = (Math.sin(Y.mouthT)+1)/2;
+  }
+  else if (gameState === 'playing' || gameState === 'levelup') {
+    update();
+    drawBackground();
+    drawParticles();   // rings behind characters
+    drawBullets();
+    drawYashas(Y.x+Y.w/2, Y.y+Y.h, Y.facing, Y.state, Y.mouthOpen, Y.shakeX);
+    drawPavan(P.x+P.w/2, P.y+P.h, P.facing, P.state, P.strikeT, P.muteActive, P.invincible);
+    drawMuteAura();
+    drawParticles();   // sparks in front
+    drawBlaTexts();
+    drawFloatingTexts();
+    drawSlowMoOverlay();
+    drawHUD();
+    if (gameState === 'levelup') drawLevelUp();
+  }
+  else if (gameState === 'gameover') {
+    ticks++;
+    drawBackground();
+    drawGameOver();
+  }
+  else if (gameState === 'win') {
+    ticks++;
+    drawBackground();
+    drawWin();
+    drawParticles(); // win fireworks
+    drawFloatingTexts();
+  }
+  else if (gameState === 'paused') {
+    // Draw game frozen behind pause
+    drawBackground();
+    drawBullets();
+    drawYashas(Y.x+Y.w/2, Y.y+Y.h, Y.facing, Y.state, Y.mouthOpen, Y.shakeX);
+    drawPavan(P.x+P.w/2, P.y+P.h, P.facing, P.state, P.strikeT, P.muteActive, P.invincible);
+    drawHUD();
+    // Pause overlay
+    ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,GW,GH);
+    ctx.textAlign='center';
+    ctx.font='900 44px Bangers,cursive'; ctx.fillStyle='#fff';
+    ctx.shadowColor='#38d9ff'; ctx.shadowBlur=16;
+    ctx.fillText('PAUSED',GW/2,GH/2-20); ctx.shadowBlur=0;
+    ctx.font='700 12px Nunito,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.5)';
+    ctx.fillText('Press P / Escape to resume',GW/2,GH/2+20);
+  }
+
+  ctx.restore();
+}
+
+/* ── 15. GAME MANAGEMENT ─────────────────────────────────── */
+function startGame() {
+  // Reset all state
+  health=100; noise=40; score=0; combo=0; comboTimer=0;
+  muteCD=0; dashCD=0; level=0; ticks=0;
+  slowMotion=false; slowMotionT=0;
+  screenShakeX=0; screenShakeY=0; screenShakeDecay=0;
+  particles=[]; bullets=[]; blaTexts=[]; floatingTexts=[];
+
+  // Reset Pavan
+  P.x=120; P.y=GROUND; P.vx=0; P.vy=0; P.onGround=true;
+  P.facing=1; P.state='idle'; P.strikeT=0; P.dashT=0;
+  P.muteActive=false; P.muteDuration=0; P.invincible=0; P.bobT=0;
+
+  // Reset Yashas
+  Y.x=560; Y.y=GROUND; Y.vx=0; Y.vy=0; Y.onGnd=true;
+  Y.facing=-1; Y.state='taunt'; Y.stateT=80;
+  Y.bulletTimer=LEVELS[0].bInterval; Y.burstTimer=480;
+  Y.mouthT=0; Y.mouthOpen=0; Y.blaT=0; Y.shakeX=0;
+  Y.dialogTimer=90; Y.currentDialog='BLA BLA!';
+
+  getAudio(); // unlock audio
+  gameState='playing';
+}
+
+function triggerWin() {
+  gameState='win';
+  sndWin();
+  triggerShake(10);
+  // Win fireworks
+  for(let i=0;i<60;i++){
+    const a=Math.random()*Math.PI*2, s=4+Math.random()*8;
+    const cols=['#38d9ff','#ffd700','#22ff88','#b06aff','#fff','#ff4466'];
+    addFX({ type:'spark', x:GW/2+(Math.random()-0.5)*400, y:GH/2+(Math.random()-0.5)*200,
+      vx:Math.cos(a)*s, vy:Math.sin(a)*s, life:1, r:3+Math.random()*5,
+      col:cols[Math.floor(Math.random()*cols.length)] });
+  }
+}
+
+function triggerLose() {
+  gameState='gameover';
+  sndLose();
+  triggerShake(18);
+}
+
+function resetToMenu() {
+  gameState='menu';
+  ticks=0; particles=[]; bullets=[]; blaTexts=[]; floatingTexts=[];
+  Y.mouthT=0;
 }
 
 function togglePause() {
-  if (!running) return;
-  paused = !paused;
-  document.getElementById('pauseOv').classList.toggle('on', paused);
-  if (!paused) requestAnimationFrame(loop);
+  if (gameState==='playing')   gameState='paused';
+  else if (gameState==='paused') gameState='playing';
 }
 
-function startGame() {
-  // Full reset
-  noise=50; control=100; muteCd=0; muteOn=false; muteTimer=0;
-  round=1; ticks=0; strikes=0; mutes=0; over=false; paused=false;
-  particles=[]; bullets=[];
-
-  P.x=130; P.y=GROUND_Y-P.h; P.vx=0; P.vy=0; P.onGnd=true;
-  P.facing=1; P.state='idle'; P.strikeT=0; P.bobT=0; P.bob=0;
-
-  const D=DIFFS[diff];
-  Y.x=680; Y.y=GROUND_Y-Y.h; Y.vx=-D.ySpeed; Y.vy=0; Y.onGnd=true;
-  Y.facing=-1; Y.state='taunt'; Y.stateT=80; Y.bulletT=D.bInterval;
-  Y.mouthT=0; Y.mouthVal=0; Y.blaT=40; Y.shakeX=0;
-
-  document.getElementById('pauseOv').classList.remove('on');
-  document.getElementById('waveBadge').textContent='ROUND 1';
-  showScreen('gameScreen');
-  running=true;
-  requestAnimationFrame(loop);
-}
-
-function win() {
-  over=true; running=false;
-  const elapsed=Math.floor(ticks/60);
-  document.getElementById('resTitle').textContent='SILENCED!';
-  document.getElementById('resTitle').className='res-title win';
-  document.getElementById('resSub').textContent='YASHAS HAS BEEN SILENCED!';
-  document.getElementById('resultScreen').className='screen win';
-  document.getElementById('sTime').textContent=`${Math.floor(elapsed/60)}:${String(elapsed%60).padStart(2,'0')}`;
-  document.getElementById('sStrikes').textContent=strikes;
-  document.getElementById('sMutes').textContent=mutes;
-  // Result canvas scene
-  setTimeout(()=>{
-    const rc=document.getElementById('resCanvas');
-    const rx=rc.getContext('2d');
-    rx.clearRect(0,0,220,190);
-    // Draw a little win scene
-    rx.fillStyle='rgba(62,207,255,0.08)'; rx.fillRect(0,0,220,190);
-    drawPavanOnCtx(rx, 70, 165, 1, 'strike',14);
-    drawYashasOnCtx(rx, 155, 168, -1, 'hurt', 0);
-  }, 60);
-  showScreen('resultScreen');
-}
-
-function lose() {
-  over=true; running=false;
-  const elapsed=Math.floor(ticks/60);
-  document.getElementById('resTitle').textContent='TOO LOUD!';
-  document.getElementById('resTitle').className='res-title lose';
-  document.getElementById('resSub').textContent='YASHAS WAS TOO NOISY...';
-  document.getElementById('resultScreen').className='screen lose';
-  document.getElementById('sTime').textContent=`${Math.floor(elapsed/60)}:${String(elapsed%60).padStart(2,'0')}`;
-  document.getElementById('sStrikes').textContent=strikes;
-  document.getElementById('sMutes').textContent=mutes;
-  setTimeout(()=>{
-    const rc=document.getElementById('resCanvas');
-    const rx=rc.getContext('2d');
-    rx.clearRect(0,0,220,190);
-    rx.fillStyle='rgba(255,78,106,0.06)'; rx.fillRect(0,0,220,190);
-    drawPavanOnCtx(rx, 70, 165, 1, 'idle',0);
-    drawYashasOnCtx(rx, 155, 168, -1, 'taunt', 0.8);
-  }, 60);
-  showScreen('resultScreen');
-}
-
-/* ── MENU CHARACTER DRAW ── */
-// Wrappers that use an external canvas context instead of global ctx
-function drawPavanOnCtx(c, x, y, facing, state, st) {
-  const save=ctx; // swap global
-  // We draw directly on c
-  c.save(); c.translate(x,y); c.scale(facing,1); c.imageSmoothingEnabled=false;
-  const strikeArm=st>0;
-  c.fillStyle='#162040'; c.fillRect(-5,0,11,24); c.fillRect(-6,22,13,5);
-  c.fillStyle='#1e2e50'; c.fillRect(-6,0,12,24); c.fillRect(-7,22,14,5);
-  c.fillStyle='#0d2448'; c.fillRect(-17,-56,34,46);
-  c.fillStyle='#3ecfff'; c.fillRect(-17,-56,3,46); c.fillRect(14,-56,3,46);
-  c.fillStyle='#0d2448'; c.fillRect(-28,-54,13,28); c.fillStyle='#c8844a'; c.fillRect(-28,-28,12,8);
-  if(strikeArm){c.save();c.translate(17,-52);c.rotate(-28*Math.PI/180);c.fillStyle='#0d2448';c.fillRect(0,0,14,32);c.fillStyle='#3ecfff';c.shadowColor='#3ecfff';c.shadowBlur=14;c.fillRect(0,22,16,12);c.shadowBlur=0;c.restore();}else{c.fillStyle='#0d2448';c.fillRect(15,-54,13,28);c.fillStyle='#c8844a';c.fillRect(17,-28,12,8);}
-  c.fillStyle='#c8844a'; c.fillRect(-5,-62,10,7);
-  c.fillStyle='#c8844a'; c.fillRect(-15,-96,30,34);
-  c.fillStyle='#0a0a12'; c.fillRect(-17,-104,34,12); c.fillRect(-21,-100,9,7); c.fillRect(12,-102,9,10); c.fillRect(-4,-110,8,8); c.fillRect(-13,-106,7,7);
-  c.fillStyle='#fff'; c.fillRect(-12,-88,9,7); c.fillRect(3,-88,9,7);
-  c.fillStyle='#3ecfff'; c.fillRect(-9,-87,5,4); c.fillRect(5,-87,5,4);
-  c.fillStyle='#000'; c.fillRect(-8,-86,3,3); c.fillRect(6,-86,3,3);
-  c.fillStyle='#0a0a12'; c.fillRect(-13,-91,10,3); c.fillRect(3,-91,10,3);
-  c.fillStyle='#7a4428'; c.fillRect(-5,-77,10,3);
-  c.scale(1/facing,1);
-  c.font='900 10px Bangers,cursive'; c.textAlign='center';
-  c.fillStyle='#3ecfff'; c.strokeStyle='#001122'; c.lineWidth=2;
-  c.shadowColor='#3ecfff'; c.shadowBlur=6;
-  c.strokeText('PAVAN',0,16); c.fillText('PAVAN',0,16); c.shadowBlur=0;
-  c.restore();
-}
-
-function drawYashasOnCtx(c, x, y, facing, state, mouth) {
-  const hurt=state==='hurt';
-  c.save(); c.translate(x,y); c.scale(facing,1); c.imageSmoothingEnabled=false;
-  c.fillStyle=hurt?'#5a1400':'#6a3010'; c.fillRect(-6,0,12,22); c.fillRect(-7,20,14,6);
-  c.fillStyle=hurt?'#5a1400':'#7a3812'; c.fillRect(-6,0,12,22); c.fillRect(-7,20,14,6);
-  c.fillStyle=hurt?'#5a1400':'#c83800'; c.fillRect(-20,-62,40,46);
-  c.fillStyle=hurt?'#4a1000':'#a82800'; c.fillRect(-12,-34,24,16);
-  c.fillStyle='#d0784a'; c.fillRect(-20,-62,13,30); c.fillRect(-20,-32,13,10);
-  c.fillStyle='#d0784a'; c.fillRect(7,-62,13,30); c.fillRect(7,-32,13,10);
-  c.fillStyle='#d0784a'; c.fillRect(-6,-68,12,8);
-  c.fillStyle='#d0784a'; c.fillRect(-19,-108,38,40);
-  c.fillStyle='rgba(255,80,80,0.36)'; c.beginPath(); c.arc(-13,-88,6,0,Math.PI*2); c.fill(); c.beginPath(); c.arc(13,-88,6,0,Math.PI*2); c.fill();
-  c.fillStyle='#1a0800'; c.fillRect(-21,-116,42,12); c.fillRect(-25,-112,11,7); c.fillRect(14,-114,11,8); c.fillRect(-9,-122,7,8); c.fillRect(2,-124,9,10);
-  if(hurt){c.strokeStyle='#ff4e6a';c.lineWidth=2;c.beginPath();c.arc(-9,-100,4,0,Math.PI*2);c.stroke();c.beginPath();c.arc(9,-100,4,0,Math.PI*2);c.stroke();}
-  else{c.fillStyle='#fff';c.fillRect(-15,-104,11,10);c.fillRect(4,-104,11,10);c.fillStyle='#2a1a00';c.fillRect(-12,-102,5,5);c.fillRect(7,-102,5,5);}
-  const mh=hurt?3:Math.max(3,mouth*20);
-  c.fillStyle='#1a0000'; c.fillRect(-13,-88,26,mh);
-  if(!hurt&&mouth>0.3){c.fillStyle='#f0f0e0';c.fillRect(-11,-88,8,5);c.fillRect(-2,-88,8,5);}
-  c.scale(1/facing,1);
-  c.font='900 12px Bangers,cursive'; c.textAlign='center';
-  c.fillStyle='#ff4e6a'; c.strokeStyle='#220000'; c.lineWidth=3;
-  c.shadowColor='#ff4e6a'; c.shadowBlur=12;
-  c.strokeText('YASHAS',0,-128); c.fillText('YASHAS',0,-128); c.shadowBlur=0;
-  c.font='7px Bangers,cursive'; c.fillStyle='rgba(255,78,106,0.5)';
-  c.fillText('THE NOISEMAKER',0,-118);
-  c.restore();
-}
-
-function drawMenuChars() {
-  const pc=document.getElementById('menuPavan');
-  if(!pc) return;
-  const px2=pc.getContext('2d'); px2.clearRect(0,0,80,115);
-  const g=px2.createRadialGradient(40,75,5,40,75,36);
-  g.addColorStop(0,'rgba(62,207,255,0.14)'); g.addColorStop(1,'transparent');
-  px2.fillStyle=g; px2.fillRect(0,0,80,115);
-  drawPavanOnCtx(px2,40,108,1,'idle',0);
-
-  const yc=document.getElementById('menuYashas');
-  if(!yc) return;
-  const yx=yc.getContext('2d'); yx.clearRect(0,0,90,115);
-  const g2=yx.createRadialGradient(45,75,5,45,75,40);
-  g2.addColorStop(0,'rgba(255,78,106,0.14)'); g2.addColorStop(1,'transparent');
-  yx.fillStyle=g2; yx.fillRect(0,0,90,115);
-  drawYashasOnCtx(yx,45,108,-1,'taunt',0.7);
-}
-
-/* ── 11. BOOT ── */
-drawMenuChars();
-// Animate menu characters mouth
-setInterval(()=>{
-  const yc=document.getElementById('menuYashas');
-  if(yc&&document.getElementById('menuScreen').classList.contains('active')){
-    const yx=yc.getContext('2d'); yx.clearRect(0,0,90,115);
-    const g=yx.createRadialGradient(45,75,5,45,75,40);
-    g.addColorStop(0,'rgba(255,78,106,0.14)'); g.addColorStop(1,'transparent');
-    yx.fillStyle=g; yx.fillRect(0,0,90,115);
-    drawYashasOnCtx(yx,45,108,-1,'taunt',(Math.sin(Date.now()*0.005)+1)/2);
-  }
-}, 60);
+/* ── BOOT ──────────────────────────────────────────────────*/
+resizeCanvas();
+requestAnimationFrame(frame);
 </script>
 </body>
 </html>

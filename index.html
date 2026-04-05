@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>KNOCKOUT — Pavan vs Yashas</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     START SCREEN
+═══════════════════════════════════════════ -->
+<div id="startScreen" class="screen active">
+  <div class="start-bg"></div>
+  <div class="start-content">
+    <div class="game-title">
+      <span class="title-ko">KO</span>
+      <span class="title-sub">KNOCKOUT</span>
+    </div>
+    <div class="matchup">
+      <div class="fighter-card player-card">
+        <div class="fighter-avatar" id="avatarPlayer">🥊</div>
+        <div class="fighter-name">PAVAN</div>
+        <div class="fighter-tag">MANGALI</div>
+      </div>
+      <div class="vs-badge">VS</div>
+      <div class="fighter-card ai-card">
+        <div class="fighter-avatar" id="avatarAI">🥊</div>
+        <div class="fighter-name">YASHAS</div>
+        <div class="fighter-tag">THE RIVAL</div>
+      </div>
+    </div>
+    <div class="difficulty-select">
+      <div class="diff-label">SELECT DIFFICULTY</div>
+      <div class="diff-buttons">
+        <button class="diff-btn active" data-diff="easy">EASY</button>
+        <button class="diff-btn" data-diff="medium">MEDIUM</button>
+        <button class="diff-btn" data-diff="hard">HARD</button>
+      </div>
+    </div>
+    <button class="start-btn" id="startBtn">
+      <span>FIGHT!</span>
+      <div class="btn-glow"></div>
+    </button>
+    <div class="controls-hint">
+      <div class="hint-row"><kbd>A/D</kbd> Move &nbsp; <kbd>W/S</kbd> Forward/Back &nbsp; <kbd>J</kbd> Jab &nbsp; <kbd>K</kbd> Cross &nbsp; <kbd>L</kbd> Block &nbsp; <kbd>Shift</kbd> Dodge</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     HUD OVERLAY
+═══════════════════════════════════════════ -->
+<div id="hud" class="hud hidden">
+  <!-- Player HUD -->
+  <div class="hud-fighter hud-left">
+    <div class="hud-name">PAVAN <span class="hud-tag">MANGALI</span></div>
+    <div class="bar-wrap">
+      <div class="bar-label">HP</div>
+      <div class="bar-bg">
+        <div class="bar-fill health-fill" id="playerHP"></div>
+      </div>
+      <div class="bar-val" id="playerHPVal">100</div>
+    </div>
+    <div class="bar-wrap">
+      <div class="bar-label">ST</div>
+      <div class="bar-bg stamina-bg">
+        <div class="bar-fill stamina-fill" id="playerST"></div>
+      </div>
+      <div class="bar-val" id="playerSTVal">100</div>
+    </div>
+    <div class="combo-display" id="playerCombo"></div>
+  </div>
+
+  <!-- Round / Timer -->
+  <div class="hud-center">
+    <div class="round-label">ROUND</div>
+    <div class="round-num" id="roundNum">1</div>
+    <div class="round-timer" id="roundTimer">3:00</div>
+    <div class="diff-badge" id="diffBadge">EASY</div>
+  </div>
+
+  <!-- AI HUD -->
+  <div class="hud-fighter hud-right">
+    <div class="hud-name">YASHAS <span class="hud-tag">RIVAL</span></div>
+    <div class="bar-wrap reverse">
+      <div class="bar-val" id="aiHPVal">100</div>
+      <div class="bar-bg">
+        <div class="bar-fill health-fill ai-hp" id="aiHP"></div>
+      </div>
+      <div class="bar-label">HP</div>
+    </div>
+    <div class="bar-wrap reverse">
+      <div class="bar-val" id="aiSTVal">100</div>
+      <div class="bar-bg stamina-bg">
+        <div class="bar-fill stamina-fill ai-st" id="aiST"></div>
+      </div>
+      <div class="bar-label">ST</div>
+    </div>
+    <div class="combo-display right" id="aiCombo"></div>
+  </div>
+
+  <!-- Pause -->
+  <button class="pause-btn" id="pauseBtn">⏸</button>
+
+  <!-- Hit Flash -->
+  <div class="hit-flash" id="hitFlash"></div>
+
+  <!-- Announcement -->
+  <div class="announcement" id="announcement"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     CANVAS CONTAINER
+═══════════════════════════════════════════ -->
+<div id="gameContainer" class="hidden">
+  <canvas id="gameCanvas"></canvas>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MOBILE CONTROLS
+═══════════════════════════════════════════ -->
+<div id="mobileControls" class="mobile-controls hidden">
+  <div class="joystick-zone" id="joystickZone">
+    <div class="joystick-base" id="joystickBase">
+      <div class="joystick-knob" id="joystickKnob"></div>
+    </div>
+  </div>
+  <div class="action-buttons">
+    <div class="action-row top-row">
+      <button class="action-btn dodge-btn" id="mDodge">DODGE</button>
+      <button class="action-btn block-btn" id="mBlock">BLOCK</button>
+    </div>
+    <div class="action-row bot-row">
+      <button class="action-btn jab-btn" id="mJab">JAB</button>
+      <button class="action-btn cross-btn" id="mCross">CROSS</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAUSE SCREEN
+═══════════════════════════════════════════ -->
+<div id="pauseScreen" class="screen hidden">
+  <div class="pause-box">
+    <div class="pause-title">PAUSED</div>
+    <button class="menu-btn" id="resumeBtn">RESUME</button>
+    <button class="menu-btn danger" id="quitBtn">QUIT TO MENU</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     GAME OVER SCREEN
+═══════════════════════════════════════════ -->
+<div id="gameOverScreen" class="screen hidden">
+  <div class="gameover-box">
+    <div class="ko-text" id="koText">KO!</div>
+    <div class="winner-text" id="winnerText">PAVAN WINS!</div>
+    <div class="result-stats" id="resultStats"></div>
+    <button class="start-btn" id="replayBtn"><span>PLAY AGAIN</span></button>
+    <button class="menu-btn secondary" id="menuBtn">MAIN MENU</button>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Karate Fighter – Pavan vs Yashas</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════
+     START SCREEN
+══════════════════════════════════════════════════ -->
+<div id="startScreen" class="screen active">
+  <div class="start-bg"></div>
+  <div class="start-content">
+    <div class="game-logo">
+      <span class="logo-main">KARATE</span>
+      <span class="logo-sub">FIGHTER</span>
+    </div>
+    <div class="vs-banner">
+      <div class="char-card" id="p1Card">
+        <div class="char-avatar p1-avatar">PM</div>
+        <div class="char-name">PAVAN<br><span>MANGALI</span></div>
+        <div class="char-tag">PLAYER 1</div>
+      </div>
+      <div class="vs-text">VS</div>
+      <div class="char-card" id="p2Card">
+        <div class="char-avatar p2-avatar">YS</div>
+        <div class="char-name">YASHAS</div>
+        <div class="char-tag">AI / PLAYER 2</div>
+      </div>
+    </div>
+
+    <div class="mode-select">
+      <button class="mode-btn active" id="btn1P" onclick="selectMode('1p')">1 PLAYER</button>
+      <button class="mode-btn" id="btn2P" onclick="selectMode('2p')">2 PLAYERS</button>
+    </div>
+
+    <div class="difficulty-select" id="diffRow">
+      <span class="diff-label">DIFFICULTY:</span>
+      <button class="diff-btn active" onclick="selectDiff('easy',this)">EASY</button>
+      <button class="diff-btn" onclick="selectDiff('medium',this)">MEDIUM</button>
+      <button class="diff-btn" onclick="selectDiff('hard',this)">HARD</button>
+    </div>
+
+    <button class="play-btn" onclick="startGame()">
+      <span>FIGHT!</span>
+    </button>
+    <div class="controls-hint">
+      <div class="hint-col">
+        <b>P1 KEYS</b>
+        A/D Move &nbsp;|&nbsp; W Jump<br>J Punch &nbsp;|&nbsp; K Kick<br>L Special &nbsp;|&nbsp; I Block
+      </div>
+      <div class="hint-col" id="p2hint">
+        <b>AI OPPONENT</b>
+        Adaptive AI<br>3 Difficulty Levels
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     HUD (shown during gameplay)
+══════════════════════════════════════════════════ -->
+<div id="hud" class="hidden">
+  <!-- P1 HUD -->
+  <div class="hud-fighter left">
+    <div class="hud-name">PAVAN MANGALI</div>
+    <div class="hp-wrap">
+      <div class="hp-bar-bg">
+        <div class="hp-bar p1-hp" id="p1HP"></div>
+      </div>
+      <span class="hp-num" id="p1HPNum">100</span>
+    </div>
+    <div class="combo-meter" id="p1Combo"></div>
+  </div>
+
+  <!-- Center HUD -->
+  <div class="hud-center">
+    <div class="round-info">
+      <span id="roundLabel">ROUND 1</span>
+    </div>
+    <div class="timer-box" id="timerBox">60</div>
+    <div class="round-dots">
+      <span class="dot" id="r1p1"></span><span class="dot" id="r2p1"></span>
+      <span class="dot-sep">—</span>
+      <span class="dot" id="r1p2"></span><span class="dot" id="r2p2"></span>
+    </div>
+  </div>
+
+  <!-- P2 HUD -->
+  <div class="hud-fighter right">
+    <div class="hud-name">YASHAS</div>
+    <div class="hp-wrap right">
+      <span class="hp-num" id="p2HPNum">100</span>
+      <div class="hp-bar-bg">
+        <div class="hp-bar p2-hp" id="p2HP"></div>
+      </div>
+    </div>
+    <div class="combo-meter right" id="p2Combo"></div>
+  </div>
+
+  <!-- Pause button -->
+  <button class="pause-btn" onclick="togglePause()" title="Pause">⏸</button>
+</div>
+
+<!-- Center announcer text -->
+<div id="announcer" class="announcer hidden"></div>
+
+<!-- ══════════════════════════════════════════════════
+     MOBILE CONTROLS
+══════════════════════════════════════════════════ -->
+<div id="mobileControls" class="hidden">
+  <div id="joystickZone">
+    <div id="joystickBase">
+      <div id="joystickKnob"></div>
+    </div>
+    <button class="mob-small-btn" id="jumpBtn">▲<br><span>JUMP</span></button>
+  </div>
+  <div id="actionBtns">
+    <div class="action-row">
+      <button class="mob-btn punch-btn" id="mobPunch">👊<br>PUNCH</button>
+      <button class="mob-btn kick-btn" id="mobKick">🦵<br>KICK</button>
+    </div>
+    <div class="action-row">
+      <button class="mob-btn block-btn" id="mobBlock">🛡<br>BLOCK</button>
+      <button class="mob-btn special-btn" id="mobSpecial">⚡<br>SPECIAL</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     PAUSE SCREEN
+══════════════════════════════════════════════════ -->
+<div id="pauseScreen" class="screen hidden">
+  <div class="pause-box">
+    <div class="pause-title">PAUSED</div>
+    <button class="menu-btn" onclick="togglePause()">▶ RESUME</button>
+    <button class="menu-btn" onclick="goHome()">🏠 MAIN MENU</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     GAME OVER SCREEN
+══════════════════════════════════════════════════ -->
+<div id="gameOverScreen" class="screen hidden">
+  <div class="gameover-box">
+    <div class="winner-label" id="winnerLabel"></div>
+    <div class="winner-name" id="winnerName"></div>
+    <div class="winner-sub">WINS THE MATCH!</div>
+    <div class="score-display" id="scoreDisplay"></div>
+    <button class="play-btn small" onclick="startGame()">REMATCH!</button>
+    <button class="menu-btn" onclick="goHome()">🏠 MAIN MENU</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     THREE.JS CANVAS
+══════════════════════════════════════════════════ -->
+<canvas id="gameCanvas"></canvas>
+
+<!-- Three.js from CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
